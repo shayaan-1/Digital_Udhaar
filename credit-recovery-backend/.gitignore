@@ -1,0 +1,80 @@
+# ==========================================
+# Python
+# ==========================================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Python tooling
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# ==========================================
+# Environment variables
+# ==========================================
+.env
+.env.*
+!.env.example
+
+# ==========================================
+# Alembic
+# ==========================================
+*.db
+*.sqlite3
+
+# ==========================================
+# Logs
+# ==========================================
+*.log
+logs/
+
+# ==========================================
+# VS Code
+# ==========================================
+.vscode/
+
+# ==========================================
+# OS files
+# ==========================================
+.DS_Store
+Thumbs.db
+
+# ==========================================
+# Node / Next.js
+# ==========================================
+credit-recovery-frontend/node_modules/
+credit-recovery-frontend/.next/
+credit-recovery-frontend/out/
+credit-recovery-frontend/.turbo/
+
+# Frontend environment
+credit-recovery-frontend/.env.local
+credit-recovery-frontend/.env.production
+credit-recovery-frontend/.env.development
+
+# Package manager logs
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# ==========================================
+# Build
+# ==========================================
+dist/
+build/
+
+# ==========================================
+# IDEs
+# ==========================================
+.idea/
