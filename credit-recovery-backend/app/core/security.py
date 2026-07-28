@@ -27,7 +27,7 @@ settings = get_settings()
 
 # bcrypt with automatic per-hash salt; cost factor 12 (default) balances
 # security vs. login latency. Bump to 13/14 as hardware improves.
-_pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+_pwd_context = CryptContext(schemes=["bcrypt_sha256"], deprecated="auto")
 
 TOKEN_TYPE_ACCESS = "access"
 
