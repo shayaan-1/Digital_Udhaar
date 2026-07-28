@@ -173,3 +173,109 @@ FOR EACH ROW EXECUTE FUNCTION fn_touch_updated_at();
 
 CREATE TRIGGER trg_customers_updated_at BEFORE UPDATE ON customers
 FOR EACH ROW EXECUTE FUNCTION fn_touch_updated_at();
+
+BEGIN;
+
+-- 1. Idempotency support on transactions
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS idempotency_key VARCHAR(255);
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'uq_transactions_business_idempotency'
+    ) THEN
+        ALTER TABLE transactions
+            ADD CONSTRAINT uq_transactions_business_idempotency
+            UNIQUE (business_id, idempotency_key);
+    END IF;
+END $$;
+
+-- 2. Adjustment direction (BUG FIX: adjustments could previously only increase balance)
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'adjustment_direction') THEN
+        CREATE TYPE adjustment_direction AS ENUM ('increase', 'decrease');
+    END IF;
+END $$;
+
+ALTER TABLE transactions ADD COLUMN IF NOT EXISTS adjustment_direction adjustment_direction;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'chk_adjustment_direction_required'
+    ) THEN
+        ALTER TABLE transactions ADD CONSTRAINT chk_adjustment_direction_required CHECK (
+            (type = 'adjustment' AND adjustment_direction IS NOT NULL)
+            OR (type <> 'adjustment' AND adjustment_direction IS NULL)
+        );
+    END IF;
+END $$;
+
+-- 3. Refresh tokens (secure session management — stores only a SHA-256 hash, never the raw token)
+CREATE TABLE IF NOT EXISTS refresh_tokens (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id         UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token_hash      VARCHAR(128) NOT NULL UNIQUE,
+    expires_at      TIMESTAMPTZ NOT NULL,
+    revoked_at      TIMESTAMPTZ,
+    replaced_by_id  UUID,
+    user_agent      VARCHAR(500),
+    ip_address      VARCHAR(64),
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON refresh_tokens(user_id);
+CREATE INDEX IF NOT EXISTS idx_refresh_tokens_token_hash ON refresh_tokens(token_hash);
+CREATE INDEX IF NOT EXISTS idx_refresh_tokens_expires_at ON refresh_tokens(expires_at);
+
+-- 4. BUG FIX: fn_apply_transaction_to_customer
+--    a) Adjustments now respect adjustment_direction instead of always increasing balance.
+--    b) is_reversal now actually flips the balance delta (previously it did nothing).
+CREATE OR REPLACE FUNCTION fn_apply_transaction_to_customer()
+RETURNS TRIGGER AS $$
+DECLARE
+    delta NUMERIC(14,2);
+BEGIN
+    IF NEW.type IN ('credit_sale', 'opening_balance') THEN
+        delta := NEW.amount;
+    ELSIF NEW.type = 'payment' THEN
+        delta := -NEW.amount;
+    ELSIF NEW.type = 'adjustment' THEN
+        delta := CASE
+                    WHEN NEW.adjustment_direction = 'decrease' THEN -NEW.amount
+                    ELSE NEW.amount
+                 END;
+    ELSE
+        RAISE EXCEPTION 'Unhandled transaction type: %', NEW.type;
+    END IF;
+
+    IF NEW.is_reversal THEN
+        delta := -delta;
+    END IF;
+
+    UPDATE customers
+    SET
+        current_outstanding = current_outstanding + delta,
+        total_purchases = total_purchases +
+            (CASE WHEN NEW.type = 'credit_sale' AND NOT NEW.is_reversal THEN NEW.amount ELSE 0 END),
+        total_payments = total_payments +
+            (CASE WHEN NEW.type = 'payment' AND NOT NEW.is_reversal THEN NEW.amount ELSE 0 END),
+        last_purchase_date = (CASE
+            WHEN NEW.type = 'credit_sale' AND NOT NEW.is_reversal THEN NEW.invoice_date
+            ELSE last_purchase_date END),
+        last_payment_date = (CASE
+            WHEN NEW.type = 'payment' AND NOT NEW.is_reversal THEN NEW.created_at::date
+            ELSE last_payment_date END),
+        updated_at = now()
+    WHERE id = NEW.customer_id;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 5. Composite index to speed up the ledger endpoint's date/type filters
+CREATE INDEX IF NOT EXISTS idx_transactions_customer_created_at_desc
+    ON transactions (customer_id, created_at DESC);
+
+COMMIT;
