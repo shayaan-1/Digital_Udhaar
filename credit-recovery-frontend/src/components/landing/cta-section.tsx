@@ -1,0 +1,28 @@
+import { ArrowRight } from "lucide-react"
+import { Button } from "@/components/ui/button"
+
+type CtaSectionProps = {
+  onDemoClick: () => void
+}
+
+export function CtaSection({ onDemoClick }: CtaSectionProps) {
+  return (
+    <section className="mx-auto max-w-6xl px-6 pb-20">
+      <div className="rounded-2xl bg-[#1F3D2E] px-8 py-14 text-center text-[#F7F1E4] md:px-16">
+        <h2 className="font-[family-name:var(--font-display)] text-3xl font-bold tracking-tight">
+          Stop chasing customers on the phone.
+        </h2>
+        <p className="mx-auto mt-3 max-w-md text-[#F7F1E4]/70">
+          Set up your ledger in an afternoon. Let WhatsApp do the following up.
+        </p>
+        <Button
+          size="lg"
+          onClick={onDemoClick}
+          className="mt-6 bg-[#D4A63A] text-[#1F3D2E] hover:bg-[#D4A63A]/90"
+        >
+          Request a demo <ArrowRight className="ml-1 h-4 w-4" />
+        </Button>
+      </div>
+    </section>
+  )
+}
