@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
@@ -15,13 +16,24 @@ export function CtaSection({ onDemoClick }: CtaSectionProps) {
         <p className="mx-auto mt-3 max-w-md text-[#F7F1E4]/70">
           Set up your ledger in an afternoon. Let WhatsApp do the following up.
         </p>
-        <Button
-          size="lg"
-          onClick={onDemoClick}
-          className="mt-6 bg-[#D4A63A] text-[#1F3D2E] hover:bg-[#D4A63A]/90"
-        >
-          Request a demo <ArrowRight className="ml-1 h-4 w-4" />
-        </Button>
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+          <Button
+            size="lg"
+            render={<Link href="/signup" />}
+            nativeButton={false}
+            className="bg-[#D4A63A] text-[#1F3D2E] hover:bg-[#D4A63A]/90"
+          >
+            Start free <ArrowRight className="ml-1 h-4 w-4" />
+          </Button>
+          <Button
+            size="lg"
+            variant="outline"
+            onClick={onDemoClick}
+            className="border-[#F7F1E4]/30 bg-transparent text-[#F7F1E4] hover:bg-[#F7F1E4]/10 hover:text-[#F7F1E4]"
+          >
+            Request a demo
+          </Button>
+        </div>
       </div>
     </section>
   )

@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { ArrowRight, CheckCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -45,11 +46,11 @@ export function HeroSection({ onDemoClick }: HeroSectionProps) {
             <Button
               size="lg"
               variant="outline"
-              render={<a href="#how-it-works" />}
+              render={<Link href="/signup" />}
               nativeButton={false}
               className="border-[#F7F1E4]/30 bg-transparent text-[#F7F1E4] hover:bg-[#F7F1E4]/10 hover:text-[#F7F1E4]"
             >
-              See how it works
+              Start free
             </Button>
           </div>
         </div>
