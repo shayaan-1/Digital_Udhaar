@@ -5,7 +5,7 @@ Cookie strategy:
 - Access token: returned in the JSON body. The SPA keeps it in memory
   (NOT localStorage, to limit XSS blast radius) and attaches it as
   `Authorization: Bearer <token>`.
-- Refresh token: set as an httpOnly, Secure, SameSite=strict cookie scoped
+- Refresh token: set as an httpOnly, Secure, SameSite=strict and cookie scoped
   to /api/v1/auth so it's invisible to JS and is never sent to unrelated
   routes. Only /auth/refresh and /auth/logout read it.
 """
