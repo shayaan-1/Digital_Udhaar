@@ -1,7 +1,7 @@
 """
 app/services/auth_service.py
 
-Signup, login, refresh-token rotation and logout. See core/security.py for
+Signup, login, refresh-token rotation and logout. Also See core/security.py for
 the cryptographic details and design rationale.
 """
 import uuid
