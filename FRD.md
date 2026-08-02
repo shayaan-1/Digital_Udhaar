@@ -6,7 +6,7 @@
 
 ---
 
-# 1. Purpose
+# 1. Purpose of the project
 
 The system enables businesses that sell on credit to digitally manage customer ledgers, monitor outstanding balances, automate payment reminders through WhatsApp, and generate professional account statements.
 
