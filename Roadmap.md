@@ -7,7 +7,7 @@
 
 ---
 
-## How to Read This Document
+## How you can Read This Document
 
 For every phase you'll find:
 1. **Business goal** — why this phase exists commercially
