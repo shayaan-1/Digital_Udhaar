@@ -17,6 +17,7 @@ Usage:
 
 Safe to re-run: if the demo owner's email already exists, the script exits
 without creating duplicates.
+Remove this file before sending to production
 """
 import sys
 from datetime import date, timedelta
