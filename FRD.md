@@ -136,7 +136,7 @@ Running balance is recalculated after every transaction.
 
 # 6. Credit Sale Flow
 
-Staff selects customer.
+Staff selects the customer.
 
 System displays:
 
