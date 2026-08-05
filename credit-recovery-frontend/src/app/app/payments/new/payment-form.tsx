@@ -72,7 +72,7 @@ export function PaymentForm() {
     <div>
       <PageHeader
         title="Record payment"
-        description="Apply a payment against a customer’s outstanding balance."
+        description="Apply a payment against a retailer’s outstanding balance."
         breadcrumb={[{ label: "Dashboard", href: "/app" }, { label: "Payment" }]}
       />
       <form

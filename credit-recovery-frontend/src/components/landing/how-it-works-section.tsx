@@ -8,7 +8,7 @@ export function HowItWorksSection() {
     >
       <div className="mx-auto max-w-6xl px-6">
         <h2 className="mb-10 font-[family-name:var(--font-display)] text-3xl font-bold tracking-tight text-[#1F3D2E]">
-          From opening a register to closing a balance
+          From retailer ledger to recovered cash
         </h2>
         <div className="grid gap-8 md:grid-cols-4">
           {STEPS.map((step, i) => (

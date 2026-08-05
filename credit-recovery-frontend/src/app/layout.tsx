@@ -20,8 +20,9 @@ const plexMono = IBM_Plex_Mono({
 })
 
 export const metadata = {
-  title: "Wasooli — Digital Khata",
-  description: "Track credit sales, payments, and outstanding balances.",
+  title: "Wasooli — Credit Intelligence",
+  description:
+    "Distributor credit intelligence: retailer ledgers, live risk scores, and SMS-first collection reminders.",
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

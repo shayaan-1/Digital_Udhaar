@@ -43,7 +43,7 @@ export function CustomerPicker({
 
   return (
     <div className="space-y-2">
-      <Label>Customer</Label>
+      <Label>Retailer</Label>
       <Select
         value={value || undefined}
         onValueChange={(v) => {
@@ -52,7 +52,7 @@ export function CustomerPicker({
         disabled={disabled || loading}
       >
         <SelectTrigger className="w-full">
-          <SelectValue placeholder={loading ? "Loading…" : "Select customer"} />
+          <SelectValue placeholder={loading ? "Loading…" : "Select retailer"} />
         </SelectTrigger>
         <SelectContent>
           {customers.map((c) => (

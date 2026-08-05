@@ -70,7 +70,7 @@ export default function CustomersPage() {
       setTotal(data.total)
     } catch (error) {
       toast.add({
-        title: "Could not load customers",
+        title: "Could not load retailers",
         description: getApiErrorMessage(error),
         type: "error",
       })
@@ -87,7 +87,7 @@ export default function CustomersPage() {
     if (!window.confirm(`Archive ${name}? Their ledger history is kept.`)) return
     try {
       await archiveCustomer(id)
-      toast.add({ title: "Customer archived", type: "success" })
+      toast.add({ title: "Retailer archived", type: "success" })
       void load()
     } catch (error) {
       toast.add({
@@ -103,22 +103,22 @@ export default function CustomersPage() {
   return (
     <div>
       <PageHeader
-        title="Customers"
-        description="Search, edit, and manage credit customers."
+        title="Retailers"
+        description="Search, edit, and manage your retailer credit accounts."
         actions={
           <Button
             render={<Link href="/app/customers/new" />}
             nativeButton={false}
             className="bg-gold text-forest hover:bg-gold/90"
           >
-            Add customer
+            Add retailer
           </Button>
         }
       />
 
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Input
-          placeholder="Search by name or mobile…"
+          placeholder="Search by shop name or mobile…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="max-w-sm bg-white"
@@ -134,19 +134,19 @@ export default function CustomersPage() {
         </label>
       </div>
 
-      {loading && <LoadingBlock label="Loading customers…" />}
+      {loading && <LoadingBlock label="Loading retailers…" />}
 
       {!loading && items.length === 0 && (
         <EmptyState
-          title="No customers yet"
-          description="Add your first customer to start recording credit sales."
+          title="No retailers yet"
+          description="Add your first retailer to start recording credit sales."
           action={
             <Button
               render={<Link href="/app/customers/new" />}
               nativeButton={false}
               className="bg-forest text-cream hover:bg-forest/90"
             >
-              Add customer
+              Add retailer
             </Button>
           }
         />
@@ -214,7 +214,7 @@ export default function CustomersPage() {
           </Table>
           <div className="flex items-center justify-between border-t border-forest/10 px-4 py-3 text-sm text-ink/60">
             <span>
-              {total} customer{total === 1 ? "" : "s"}
+              {total} retailer{total === 1 ? "" : "s"}
             </span>
             <div className="flex items-center gap-2">
               <Button

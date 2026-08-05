@@ -114,7 +114,7 @@ export function BusinessFormFields({
           <Input id="phone" {...register("phone")} />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="whatsapp_number">WhatsApp number</Label>
+          <Label htmlFor="whatsapp_number">WhatsApp (optional)</Label>
           <Input id="whatsapp_number" {...register("whatsapp_number")} />
         </div>
       </div>

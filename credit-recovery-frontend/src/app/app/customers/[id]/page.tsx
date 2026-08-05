@@ -83,7 +83,7 @@ export default function CustomerDetailPage() {
         })
       } catch (error) {
         toast.add({
-          title: "Customer not found",
+          title: "Retailer not found",
           description: getApiErrorMessage(error),
           type: "error",
         })
@@ -112,7 +112,7 @@ export default function CustomerDetailPage() {
       })
       setCustomer(updated)
       setEditing(false)
-      toast.add({ title: "Customer updated", type: "success" })
+      toast.add({ title: "Retailer updated", type: "success" })
     } catch (error) {
       toast.add({
         title: "Update failed",
@@ -128,7 +128,7 @@ export default function CustomerDetailPage() {
     try {
       const updated = await archiveCustomer(id)
       setCustomer(updated)
-      toast.add({ title: "Customer archived", type: "success" })
+      toast.add({ title: "Retailer archived", type: "success" })
     } catch (error) {
       toast.add({
         title: "Archive failed",
@@ -138,11 +138,11 @@ export default function CustomerDetailPage() {
     }
   }
 
-  if (loading) return <LoadingBlock label="Loading customer…" />
+  if (loading) return <LoadingBlock label="Loading retailer…" />
   if (!customer) {
     return (
       <EmptyState
-        title="Customer not found"
+        title="Retailer not found"
         action={
           <Button render={<Link href="/app/customers" />} nativeButton={false}>
             Back to list
@@ -158,7 +158,7 @@ export default function CustomerDetailPage() {
         title={customer.name}
         description={customer.business_name || customer.mobile_number}
         breadcrumb={[
-          { label: "Customers", href: "/app/customers" },
+          { label: "Retailers", href: "/app/customers" },
           { label: customer.name },
         ]}
         actions={
@@ -247,7 +247,7 @@ export default function CustomerDetailPage() {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="name">Name</Label>
+                <Label htmlFor="name">Shop / retailer name</Label>
                 <Input id="name" {...register("name")} />
                 {errors.name && (
                   <p className="text-sm text-destructive">{errors.name.message}</p>
@@ -258,7 +258,7 @@ export default function CustomerDetailPage() {
                 <Input id="mobile_number" {...register("mobile_number")} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="whatsapp_number">WhatsApp</Label>
+                <Label htmlFor="whatsapp_number">WhatsApp (optional)</Label>
                 <Input id="whatsapp_number" {...register("whatsapp_number")} />
               </div>
               <div className="space-y-2">
@@ -339,7 +339,7 @@ export default function CustomerDetailPage() {
               <dd className="font-[family-name:var(--font-mono)]">{customer.mobile_number}</dd>
             </div>
             <div>
-              <dt className="text-ink/50">WhatsApp</dt>
+              <dt className="text-ink/50">WhatsApp (optional)</dt>
               <dd>{customer.whatsapp_number || "—"}</dd>
             </div>
             <div>

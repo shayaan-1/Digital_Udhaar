@@ -68,7 +68,7 @@ export function AdjustmentForm() {
     <div>
       <PageHeader
         title="Manual adjustment"
-        description="Increase or decrease a customer’s outstanding balance with a required note."
+        description="Increase or decrease a retailer’s outstanding balance with a required note."
         breadcrumb={[{ label: "Dashboard", href: "/app" }, { label: "Adjustment" }]}
       />
       <form

@@ -5,7 +5,7 @@ export function SiteFooter() {
         <span className="font-[family-name:var(--font-display)] text-[#1F3D2E]">
           Wasooli
         </span>
-        <span>© 2026 Wasooli. Built for Pakistan&apos;s credit businesses.</span>
+        <span>© 2026 Wasooli. Credit intelligence for Pakistan&apos;s distributors.</span>
       </div>
     </footer>
   )

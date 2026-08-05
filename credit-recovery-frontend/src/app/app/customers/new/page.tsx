@@ -59,11 +59,11 @@ export default function NewCustomerPage() {
         opening_balance: values.opening_balance,
         credit_status: values.credit_status,
       })
-      toast.add({ title: "Customer added", type: "success" })
+      toast.add({ title: "Retailer added", type: "success" })
       router.push(`/app/customers/${customer.id}`)
     } catch (error) {
       toast.add({
-        title: "Could not add customer",
+        title: "Could not add retailer",
         description: getApiErrorMessage(error),
         type: "error",
       })
@@ -73,10 +73,10 @@ export default function NewCustomerPage() {
   return (
     <div>
       <PageHeader
-        title="Add customer"
-        description="Name and mobile are required."
+        title="Add retailer"
+        description="Shop name and mobile are required."
         breadcrumb={[
-          { label: "Customers", href: "/app/customers" },
+          { label: "Retailers", href: "/app/customers" },
           { label: "New" },
         ]}
       />
@@ -86,7 +86,7 @@ export default function NewCustomerPage() {
       >
         <div className="grid gap-5 sm:grid-cols-2">
           <div className="space-y-2 sm:col-span-2">
-            <Label htmlFor="name">Name *</Label>
+            <Label htmlFor="name">Shop / retailer name *</Label>
             <Input id="name" aria-invalid={!!errors.name} {...register("name")} />
             {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
           </div>
@@ -102,7 +102,7 @@ export default function NewCustomerPage() {
             )}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="whatsapp_number">WhatsApp</Label>
+            <Label htmlFor="whatsapp_number">WhatsApp (optional)</Label>
             <Input id="whatsapp_number" {...register("whatsapp_number")} />
           </div>
           <div className="space-y-2 sm:col-span-2">
@@ -171,7 +171,7 @@ export default function NewCustomerPage() {
             disabled={isSubmitting}
             className="bg-forest text-cream hover:bg-forest/90"
           >
-            {isSubmitting ? "Saving…" : "Save customer"}
+            {isSubmitting ? "Saving…" : "Save retailer"}
           </Button>
           <Button
             type="button"

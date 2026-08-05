@@ -19,10 +19,10 @@ export default function OnboardingPage() {
           Wasooli
         </p>
         <h1 className="mt-4 font-[family-name:var(--font-display)] text-3xl font-bold tracking-tight text-forest">
-          Set up your business
+          Set up your distributorship
         </h1>
         <p className="mt-2 text-sm text-ink/65">
-          These details show on statements and reminders later.
+          These details auto-populate statements and collection reminders.
         </p>
       </div>
 
@@ -62,7 +62,7 @@ export default function OnboardingPage() {
         ) : (
           <div className="space-y-5">
             <p className="text-sm text-ink/65">
-              Add how customers should pay you — bank account, JazzCash, or Easypaisa.
+              Add how retailers should pay you — bank account, JazzCash, or Easypaisa.
             </p>
             <BusinessFormFields
               submitLabel="Finish setup"

@@ -96,7 +96,7 @@ export default function CustomerLedgerPage() {
         title={customer ? `${customer.name} — Ledger` : "Ledger"}
         description="Chronological transactions with running balance."
         breadcrumb={[
-          { label: "Customers", href: "/app/customers" },
+          { label: "Retailers", href: "/app/customers" },
           { label: customer?.name || "…", href: `/app/customers/${customerId}` },
           { label: "Ledger" },
         ]}

@@ -20,7 +20,7 @@ import { RequireAuth } from "@/lib/auth/require-auth"
 
 const NAV = [
   { href: "/app", label: "Dashboard", icon: LayoutDashboard, exact: true },
-  { href: "/app/customers", label: "Customers", icon: Users },
+  { href: "/app/customers", label: "Retailers", icon: Users },
   { href: "/app/settings", label: "Settings", icon: Settings },
 ]
 
@@ -86,7 +86,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
             Wasooli
           </Link>
           <p className="mt-1 font-[family-name:var(--font-mono)] text-xs text-sidebar-foreground/55">
-            Digital khata
+            Credit intelligence
           </p>
         </div>
         <div className="flex-1 px-3 py-4">

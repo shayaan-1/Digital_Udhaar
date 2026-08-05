@@ -42,7 +42,7 @@ export default function DashboardPage() {
     <div>
       <PageHeader
         title="Dashboard"
-        description="Today’s activity and total exposure at a glance."
+        description="Today’s credit sales, collections, and total retailer exposure."
         actions={
           <>
             <Button
@@ -51,7 +51,7 @@ export default function DashboardPage() {
               variant="outline"
               className="border-forest/20"
             >
-              Add customer
+              Add retailer
             </Button>
             <Button
               render={<Link href="/app/sales/new" />}
@@ -85,7 +85,7 @@ export default function DashboardPage() {
             value={formatMoney(summary.total_outstanding)}
           />
           <StatCard
-            label="Customers"
+            label="Retailers"
             value={String(summary.total_customers)}
             hint={`${summary.active_customers} active · ${summary.archived_customers} archived`}
           />

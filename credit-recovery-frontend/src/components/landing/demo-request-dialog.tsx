@@ -54,24 +54,25 @@ export function DemoRequestDialog({ open, onOpenChange }: DemoRequestDialogProps
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="font-[family-name:var(--font-display)]">
-            See Wasooli on your own ledger
+            See Wasooli on your retailer ledger
           </DialogTitle>
           <DialogDescription>
-            Tell us a bit about your business — we'll set up a walkthrough.
+            Tell us about your distribution business — we&apos;ll walk through
+            risk, collections, and your outstanding.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-2">
           <div className="grid gap-2">
-            <Label htmlFor="business-name">Business name</Label>
+            <Label htmlFor="business-name">Distributor / business name</Label>
             <Input
               id="business-name"
-              placeholder="e.g. Malik Traders"
+              placeholder="e.g. Malik Distributors"
               value={businessName}
               onChange={(e) => setBusinessName(e.target.value)}
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="phone">WhatsApp number</Label>
+            <Label htmlFor="phone">Phone number</Label>
             <Input
               id="phone"
               placeholder="03xx-xxxxxxx"
@@ -80,17 +81,17 @@ export function DemoRequestDialog({ open, onOpenChange }: DemoRequestDialogProps
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="business-type">Business type</Label>
+            <Label htmlFor="business-type">Trade vertical</Label>
             <Select>
               <SelectTrigger id="business-type">
-                <SelectValue placeholder="Select business type" />
+                <SelectValue placeholder="Select vertical" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="wholesaler">Wholesaler</SelectItem>
-                <SelectItem value="retailer">Retailer</SelectItem>
-                <SelectItem value="distributor">Distributor</SelectItem>
-                <SelectItem value="manufacturer">Manufacturer</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
+                <SelectItem value="fmcg">FMCG distributor</SelectItem>
+                <SelectItem value="pharma">Pharma distributor</SelectItem>
+                <SelectItem value="hardware">Hardware / building materials</SelectItem>
+                <SelectItem value="cloth">Cloth / wholesale</SelectItem>
+                <SelectItem value="other">Other trade credit</SelectItem>
               </SelectContent>
             </Select>
           </div>

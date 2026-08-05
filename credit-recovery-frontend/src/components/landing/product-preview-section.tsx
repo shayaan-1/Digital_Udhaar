@@ -20,11 +20,11 @@ export function ProductPreviewSection() {
   return (
     <section id="preview" className="mx-auto max-w-6xl px-6 py-20">
       <h2 className="mb-8 font-[family-name:var(--font-display)] text-3xl font-bold tracking-tight text-[#1F3D2E]">
-        One ledger, every view an owner needs
+        One ledger, every view a distributor needs
       </h2>
       <Tabs defaultValue="ledger">
         <TabsList className="bg-[#1F3D2E]/5">
-          <TabsTrigger value="ledger">Customer ledger</TabsTrigger>
+          <TabsTrigger value="ledger">Retailer ledger</TabsTrigger>
           <TabsTrigger value="reminders">Reminders</TabsTrigger>
           <TabsTrigger value="reports">Reports</TabsTrigger>
         </TabsList>
@@ -35,7 +35,7 @@ export function ProductPreviewSection() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Customer</TableHead>
+                    <TableHead>Retailer</TableHead>
                     <TableHead>City</TableHead>
                     <TableHead>Outstanding</TableHead>
                     <TableHead>Avg. delay</TableHead>

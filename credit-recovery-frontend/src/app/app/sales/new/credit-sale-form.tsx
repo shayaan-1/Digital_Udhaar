@@ -107,7 +107,7 @@ export function CreditSaleForm() {
     <div>
       <PageHeader
         title="Record credit sale"
-        description="Invoice on credit against a customer’s account."
+        description="Invoice on credit against a retailer’s account."
         breadcrumb={[{ label: "Dashboard", href: "/app" }, { label: "Credit sale" }]}
       />
 

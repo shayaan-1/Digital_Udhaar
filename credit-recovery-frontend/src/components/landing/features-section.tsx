@@ -11,11 +11,11 @@ export function FeaturesSection() {
     <section id="features" className="mx-auto max-w-6xl px-6 py-20">
       <div className="mb-10 max-w-xl">
         <h2 className="font-[family-name:var(--font-display)] text-3xl font-bold tracking-tight text-[#1F3D2E]">
-          Everything a credit business runs on
+          Everything a distributor needs for credit
         </h2>
         <p className="mt-3 text-[#1B1B18]/65">
-          Built for how Pakistani traders already sell — on trust, on credit, and
-          increasingly, on WhatsApp.
+          Ledger, collections, and forward-looking risk — scoped to receivables,
+          not another heavy DMS you&apos;ll never finish implementing.
         </p>
       </div>
       <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">

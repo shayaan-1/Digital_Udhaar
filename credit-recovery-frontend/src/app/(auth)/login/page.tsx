@@ -4,7 +4,7 @@ import { LoginForm } from "@/components/auth/login-form"
 
 export default function LoginPage() {
   return (
-    <AuthShell title="Log in" subtitle="Access your digital khata.">
+    <AuthShell title="Log in" subtitle="Access your distributor credit ledger.">
       <Suspense
         fallback={
           <p className="font-[family-name:var(--font-mono)] text-sm text-ink/60">Loading…</p>

@@ -48,7 +48,7 @@ export const customerCreateSchema = z.object({
 })
 
 export const creditSaleSchema = z.object({
-  customer_id: z.string().uuid("Select a customer"),
+  customer_id: z.string().uuid("Select a retailer"),
   amount: z
     .string()
     .regex(/^\d+(\.\d{1,2})?$/, "Enter a valid amount")
@@ -60,7 +60,7 @@ export const creditSaleSchema = z.object({
 })
 
 export const paymentSchema = z.object({
-  customer_id: z.string().uuid("Select a customer"),
+  customer_id: z.string().uuid("Select a retailer"),
   amount: z
     .string()
     .regex(/^\d+(\.\d{1,2})?$/, "Enter a valid amount")
@@ -72,7 +72,7 @@ export const paymentSchema = z.object({
 })
 
 export const adjustmentSchema = z.object({
-  customer_id: z.string().uuid("Select a customer"),
+  customer_id: z.string().uuid("Select a retailer"),
   amount: z
     .string()
     .regex(/^\d+(\.\d{1,2})?$/, "Enter a valid amount")

@@ -1,5 +1,5 @@
 import {
-  MessageCircleMore,
+  Smartphone,
   BookOpenText,
   ShieldAlert,
   FileBarChart,
@@ -31,63 +31,63 @@ export type LedgerRow = {
 export const FEATURES: Feature[] = [
   {
     icon: BookOpenText,
-    title: "Digital customer ledger",
-    desc: "Every credit sale and payment lands in one running balance per customer — no more three notebooks and a calculator.",
+    title: "Digital retailer ledger",
+    desc: "Every credit sale and payment lands in one running balance per retailer — immutable, audit-ready, always current.",
   },
   {
-    icon: MessageCircleMore,
-    title: "WhatsApp reminders",
-    desc: "Reminders go out on WhatsApp automatically, in your own wording, with your payment details attached.",
+    icon: Smartphone,
+    title: "SMS-first reminders",
+    desc: "Collection reminders go out by SMS by default — any handset, no WhatsApp approval wait. WhatsApp is optional when you want it.",
   },
   {
     icon: ShieldAlert,
-    title: "Credit risk score",
-    desc: "See a customer's payment delay and risk level before you hand over more stock on credit.",
+    title: "Live credit risk score",
+    desc: "See payment delay, utilization, and risk level before you extend more stock — not after the write-off.",
   },
   {
     icon: FileBarChart,
     title: "Statements & reports",
-    desc: "Generate a clean PDF statement for any customer, any period, and share it straight to WhatsApp.",
+    desc: "Professional retailer statements and receivables reports you can export or share on any connected channel.",
   },
   {
     icon: Bell,
     title: "Owner alerts",
-    desc: "Get notified when a large payment lands, a limit is crossed, or a reminder fails to send.",
+    desc: "Get notified when a large payment lands, a limit is crossed, a reminder fails, or a retailer turns high-risk.",
   },
   {
     icon: Users,
     title: "Staff accounts",
-    desc: "Give staff exactly the permissions they need — record sales, not delete records.",
+    desc: "Give counter staff and salesmen exactly the permissions they need — record sales, not delete records.",
   },
 ]
 
 export const STEPS: Step[] = [
   {
     n: "01",
-    title: "Import your khata",
-    desc: "Bring in existing customers and opening balances from Excel or CSV in one go.",
+    title: "Import your retailers",
+    desc: "Bring in existing retailers and opening balances from Excel or CSV in one go.",
   },
   {
     n: "02",
     title: "Record sales & payments",
-    desc: "Every transaction updates the customer's outstanding balance instantly.",
+    desc: "Every transaction updates outstanding balance and recalculates the retailer’s risk score.",
   },
   {
     n: "03",
-    title: "Reminders send themselves",
-    desc: "Rules you set decide who gets reminded, and when — no manual follow-up.",
+    title: "Reminders run on schedule",
+    desc: "Rules you set decide who gets reminded, when, and on which channel — SMS by default.",
   },
   {
     n: "04",
-    title: "Collections improve",
-    desc: "Outstanding drops, risk scores update, and the statement reflects it all.",
+    title: "Collections tighten",
+    desc: "Outstanding drops, high-risk retailers surface early, and statements stay in sync.",
   },
 ]
 
 export const LEDGER_ROWS: LedgerRow[] = [
-  { name: "Malik Traders", city: "Lahore", outstanding: "84,200", delay: "6 days", risk: "Low" },
-  { name: "Rana Cloth House", city: "Faisalabad", outstanding: "212,900", delay: "21 days", risk: "Medium" },
-  { name: "Ahmed Grocery Store", city: "Karachi", outstanding: "410,000", delay: "48 days", risk: "High" },
+  { name: "Malik Karyana", city: "Lahore", outstanding: "84,200", delay: "6 days", risk: "Low" },
+  { name: "Rana General Store", city: "Faisalabad", outstanding: "212,900", delay: "21 days", risk: "Medium" },
+  { name: "Ahmed Super Mart", city: "Karachi", outstanding: "410,000", delay: "48 days", risk: "High" },
   { name: "Bilal Hardware", city: "Lahore", outstanding: "56,750", delay: "2 days", risk: "Low" },
 ]
 
@@ -98,13 +98,13 @@ export const RISK_STYLES: Record<LedgerRow["risk"], string> = {
 }
 
 export const REMINDER_STATS = [
-  { label: "Sent today", value: "38" },
+  { label: "Sent today (SMS)", value: "38" },
   { label: "Delivered", value: "36" },
   { label: "Promised to pay", value: "9" },
 ] as const
 
 export const REPORT_LABELS = [
-  "Outstanding customers",
+  "Outstanding retailers",
   "Overdue report",
   "Collection summary",
   "Sales report",

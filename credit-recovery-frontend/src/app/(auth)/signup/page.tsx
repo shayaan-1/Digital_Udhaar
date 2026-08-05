@@ -5,7 +5,7 @@ export default function SignupPage() {
   return (
     <AuthShell
       title="Create your account"
-      subtitle="Set up your business ledger in under a minute."
+      subtitle="Set up your distributor account in under a minute."
     >
       <SignupForm />
     </AuthShell>
