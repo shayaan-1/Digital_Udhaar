@@ -1,235 +1,103 @@
-# Implementation Roadmap for this project
-## WhatsApp-Based Credit Recovery System — Phased Delivery Plan
+# Implementation Roadmap
+## Distributor Credit Intelligence Platform — Phased Delivery Plan
 
-**Prepared as:** Senior PM / Technical Architect view for a resource-constrained startup team
+**Prepared as:** Senior PM / Technical Architect view for a resource-constrained solo/small team
 **Stack:** FastAPI (backend) · Next.js (frontend) · PostgreSQL (database) · Redis + Celery (background jobs)
-**Guiding principle:** Ship the smallest thing that a real business will pay for, then layer automation, collaboration, and intelligence on top — in that order. Every phase below is a shippable, sellable product, not an internal milestone.
+**Guiding principle:** Ship the smallest thing a distributor will pay for, then layer automation, credit intelligence, collaboration, and hardening on top — in that order. Every phase is a shippable, sellable increment, not an internal milestone.
+
+**What changed from the original roadmap, and why:**
+- Phase 2 is no longer "WhatsApp automation." It's now **channel-agnostic collections messaging**, SMS-first, with WhatsApp as an optional adapter — removing the single external-dependency blocker that stalled the original plan.
+- A **Minimum-Viable Risk Engine (Phase 2.5)** is pulled forward from the old Phase 5. It's the product's actual differentiator versus existing distribution/ledger software, and it only needs real transaction history — which exists as soon as Phase 1 is live — not the full multi-user/audit stack first.
+- Phases 3, 4, and 6 are structurally unchanged from the original plan; only the terminology (retailer instead of generic "customer," distributor instead of generic "business") and a few report/dashboard additions reflect the new positioning.
+- Nothing in Phase 1's schema or backend changes. This roadmap builds on top of what's already shipped.
 
 ---
 
-## How you can Read This Document
+## How to Read This Document
 
-For every phase you'll find:
+For every phase:
 1. **Business goal** — why this phase exists commercially
-2. **Why it precedes later phases** — sequencing logic
+2. **Why it's sequenced here** — dependency and risk logic
 3. **Included / Excluded features** — explicit scope fence
 4. **Epic → User Story → Dev Task breakdown** — with complexity (S/M/L) and dependencies
-5. **Parallelization guidance** — what can be built simultaneously by 2 engineers (assumed team size: 1 backend + 1 frontend, occasionally +1 full-stack)
+5. **Parallelization guidance** — for a 1 backend + 1 frontend (+1 full-stack occasionally) team
 6. **Build order** — DB → Backend → Frontend → Integrations
 
-Complexity legend: **S** = <1 day, **M** = 1–3 days, **L** = 3–7 days (single engineer, MVP quality, not gold-plated).
+Complexity legend: **S** = <1 day, **M** = 1–3 days, **L** = 3–7 days (single engineer, MVP quality).
 
 ---
 
-# Phase 1 — The Digital Khata (Core Ledger MVP)
+# Phase 1 — Core Ledger (Shipped)
 
-### Business Goal
-Replace the paper/Excel ledger with a single-owner web app that tracks who owes what. This is the minimum wedge that gets a shopkeeper to stop using a notebook. **No WhatsApp automation yet** — the value proposition at this stage is purely "accurate, always-available ledger with real-time outstanding balances." This is sellable and demo-able within 2–3 weeks.
+### Status
+Already built. No changes required by the repositioning — the schema (`businesses`, `users`, `customers`, `transactions`, the shared transaction-creation service, the reversal model, idempotency keys, and the `fn_apply_transaction_to_customer` trigger) is fully reusable as-is. "Customer" in the schema/code maps to "Retailer" in the product-facing language; this is a labeling change in the UI copy only, not a data model change.
 
-### Why This Comes First
-- WhatsApp reminders, statements, and risk scoring are all *derived* from ledger data. Without a correct, trustworthy ledger, none of the downstream features have anything meaningful to act on.
-- It validates the riskiest assumption first: will a business actually migrate their credit tracking into this tool at all? If not, WhatsApp automation is irrelevant.
-- It's the smallest slice that produces a "wow, this is already better than my notebook" reaction, which is what earns the right to onboard paying pilot customers.
-
-### Included
-- Business profile setup (single business, owner-only)
-- Customer management (CRUD, archive-not-delete)
-- Ledger transactions: Credit Sale, Payment Received, Opening Balance, Manual Adjustment (with reversal-only correction model)
+### Recap of what exists
+- Distributor (business) profile setup
+- Retailer (customer) management: CRUD, archive-not-delete, credit info, system-generated fields
+- Ledger transactions: Credit Sale, Payment, Adjustment (increase/decrease), Opening Balance — immutable, reversal-only corrections
 - Credit sale flow with credit-limit warning
 - Payment recording flow (incl. overpayment → credit balance)
-- Customer ledger view with date/type filters
-- Minimal dashboard (today's sales/payments, total outstanding, total customers)
-- Core validation rules
-- Basic auth (single owner login), password hashing, HTTPS
+- Retailer ledger view with date/type filters
+- Minimal dashboard (today's sales/payments, total outstanding, total retailers)
+- Core validation rules, basic auth, password hashing, HTTPS
 
-### Excluded (deliberately deferred)
-- WhatsApp reminders (manual or scheduled)
-- PDF/Excel export of ledger or statements
-- Reports module
-- Staff roles/permissions, user management
-- Credit risk engine
-- Notifications
-- Audit log (a minimal "created_by/timestamp" field is captured now; the full audit *log UI* comes later)
-- Data import
-- Global search across invoices (basic customer name/phone search only)
+### Nothing to build here — this phase is the foundation everything below reads from and writes through.
 
 ---
 
-## Feature: Business Profile Setup
-
-**Epic 1.1 — Business Onboarding**
-
-- **Story:** As an Owner, I want to enter my business details once so they auto-populate future documents.
-  - Tasks:
-    - [DB] `businesses` table (name, logo_url, address, phone, whatsapp_number, currency, payment_instructions) — **S**
-    - [BE] `POST /businesses`, `GET /businesses/me`, `PATCH /businesses/me` — **S**
-    - [FE] Onboarding form (multi-step: profile → logo upload → payment instructions) — **M**
-    - [BE] Logo upload to object storage (S3-compatible) + URL persisted — **M**
-  - Dependencies: none (first table in the system)
-  - Parallel: FE form can be built against a mocked API contract while BE is in progress
-
----
-
-## Feature: Authentication
-
-**Epic 1.2 — Owner Auth**
-
-- **Story:** As an Owner, I want to sign up and log in securely.
-  - Tasks:
-    - [DB] `users` table (email, hashed_password, role, business_id) — **S**
-    - [BE] JWT-based auth (`/auth/signup`, `/auth/login`, `/auth/refresh`), bcrypt hashing — **M**
-    - [FE] Signup/login pages, token storage (httpOnly cookie), protected route wrapper — **M**
-    - [BE] Password reset flow (email token) — **M** *(can slip to Phase 4 if email infra isn't ready; flag as optional)*
-  - Dependencies: `businesses` table must exist to link `business_id`
-  - Parallel: FE auth pages can be built in parallel with BE once the JWT contract (payload shape) is agreed
-
----
-
-## Feature: Customer Management
-
-**Epic 1.3 — Customer CRUD**
-
-- **Story:** As an Owner, I want to add a customer with basic + credit info.
-  - Tasks:
-    - [DB] `customers` table (name, business_name, mobile [required], whatsapp_number, address, city, notes, credit_limit, opening_balance, credit_status, business_id, archived_at) — **M**
-    - [BE] `POST /customers`, validation (name + mobile mandatory, credit_limit ≥ 0) — **S**
-    - [FE] "Add Customer" form + client-side validation — **M**
-  - Dependencies: `businesses`, `users` (auth)
-
-- **Story:** As an Owner, I want to view/search/edit my customer list.
-  - Tasks:
-    - [BE] `GET /customers` (paginated), `GET /customers/{id}`, `PATCH /customers/{id}` — **M**
-    - [BE] Simple search by name/mobile (`ILIKE` query, indexed) — **S**
-    - [FE] Customer list table + search bar + edit modal — **M**
-  - Dependencies: Customer CRUD above
-
-- **Story:** As an Owner, I want to archive (not delete) a customer with transaction history.
-  - Tasks:
-    - [BE] `POST /customers/{id}/archive` — blocks hard delete if transactions exist — **S**
-    - [FE] Archive confirmation + "Archived" filter toggle in list — **S**
-  - Dependencies: Ledger transactions must exist as a concept (soft dependency on Epic 1.4, but can be stubbed with a `has_transactions` check against an empty table initially)
-
-**Parallelization:** Epic 1.3 stories are almost entirely sequential (list depends on create), but FE table/search UI can be scaffolded with mock data while BE endpoints are finalized.
-
----
-
-## Feature: Ledger Management + Credit Sale + Payment Flows
-
-**Epic 1.4 — Transaction Ledger Core**
-
-- **Story:** As the system, I need an immutable, typed transaction record so balances are always auditable.
-  - Tasks:
-    - [DB] `transactions` table (customer_id, type[enum: credit_sale/payment/adjustment/opening_balance], amount, reference_number, description, created_by, created_at, is_reversal, reversed_transaction_id) — **M**
-    - [BE] Shared transaction-creation service (single internal function all flows call — enforces "no edits, only reversals") — **M**
-    - [DB] Running balance: computed column via trigger **or** materialized `current_outstanding` on `customers` updated transactionally — **M** (decision point: trigger is more robust, recommended)
-  - Dependencies: `customers` table
-  - Complexity note: this is the single most important table in the product — get the reversal model right here since Phase 3 (statements) and Phase 5 (risk engine) both read from it.
-
-- **Story:** As Staff, I want to record a credit sale and see credit-limit/risk context before saving.
-  - Tasks:
-    - [BE] `GET /customers/{id}/credit-sale-context` (outstanding, credit_limit, avg_payment_delay placeholder=0 in Phase 1) — **S**
-    - [BE] `POST /transactions` (type=credit_sale) — validates invoice number/date, amount > 0, date not in future — **M**
-    - [FE] Credit Sale form with live "over limit" warning banner — **M**
-    - [BE] Owner-override flag on over-limit sales (Phase 1: owner is the only role, so this is just a confirmation checkbox) — **S**
-  - Dependencies: Epic 1.4 core, Epic 1.3
-
-- **Story:** As Staff, I want to record a payment against a customer's outstanding balance.
-  - Tasks:
-    - [BE] `POST /transactions` (type=payment) — supports overpayment → negative outstanding (credit balance) — **M**
-    - [FE] Payment form (amount, date, method dropdown, reference, notes) — **M**
-  - Dependencies: Epic 1.4 core
-
-**Parallelization:** Credit Sale flow and Payment flow are independent once the shared transaction service exists — build both FE forms in parallel.
-
----
-
-## Feature: Customer Ledger View
-
-**Epic 1.5 — Ledger Viewing**
-
-- **Story:** As an Owner, I want to see a customer's full chronological ledger with running balance.
-  - Tasks:
-    - [BE] `GET /customers/{id}/ledger?date_from&date_to&type` — **M**
-    - [FE] Ledger table (date, type, debit, credit, running balance, remarks) with filters — **M**
-  - Dependencies: Epic 1.4
-  - *(PDF/Excel export intentionally excluded from Phase 1 — see Phase 3)*
-
----
-
-## Feature: Minimal Dashboard
-
-**Epic 1.6 — Owner Dashboard v1**
-
-- **Story:** As an Owner, I want a snapshot of today's activity and total exposure.
-  - Tasks:
-    - [BE] `GET /dashboard/summary` (today's sales, today's payments, total outstanding, total customers) — **M** (simple aggregate queries, no caching needed yet at this scale)
-    - [FE] Dashboard cards layout — **M**
-  - Dependencies: Epics 1.3, 1.4
-
----
-
-### Phase 1 Build Order
-1. **Database:** `businesses` → `users` → `customers` → `transactions`
-2. **Backend:** Auth → Business profile → Customer CRUD → Transaction service → Credit sale/Payment endpoints → Ledger query → Dashboard aggregate
-3. **Frontend:** Auth pages → Onboarding → Customer list/CRUD → Credit sale & payment forms → Ledger view → Dashboard
-4. **Integrations:** None required in Phase 1 (no external APIs) — this is intentional to de-risk delivery speed.
-
-### Phase 1 Team Parallelization
-- Backend engineer: DB schema → auth → transaction service (critical path)
-- Frontend engineer: builds against a stubbed/mocked API contract for auth + customer CRUD in week 1, then wires real endpoints in week 2
-- Both converge on Credit Sale + Payment flows together since these are the highest-value, highest-testing-need screens
-
----
-
-# Phase 2 — WhatsApp Reminder Engine
+# Phase 2 — Multi-Channel Collections Messaging
 
 ### Business Goal
-This is the product's actual differentiator and the reason a customer pays a premium over a plain ledger app: **automated collections**. Phase 2 turns the ledger into an active recovery tool by sending manual and scheduled WhatsApp reminders.
+Turn the ledger into an active recovery tool without repeating the mistake of making the entire product depend on WhatsApp Business API approval. SMS becomes the default channel — near-universal delivery on any handset, no approval lead time, low per-message cost — with WhatsApp added later as an optional richer channel.
 
-### Why This Comes Before Later Phases
-- It's the highest-leverage feature for the stated business objective ("reduce overdue receivables and improve cash flow") — it should ship as soon as the ledger is trustworthy, not after cosmetic features like reports/statements.
-- It introduces two new pieces of infrastructure (Celery/Redis for scheduling, WhatsApp Business API) that are isolated and testable independently of the rest of the system — good candidate for early de-risking rather than leaving it to the end.
-- Reports (Phase 3) become far more valuable once there's reminder activity to report on (e.g. "reminders sent vs. collected").
+### Why This Comes Before Phase 2.5/3
+- Reminders are still the highest-leverage collections lever available immediately after the ledger — it just needs to not be gated on external API approval.
+- Building the channel abstraction now (rather than hard-coding WhatsApp) is a one-day decision today and a rewrite later if skipped — this is the single most important architectural correction from the original plan.
+- Statement-sharing (Phase 3) and later notification triggers (Phase 5) both reuse whatever messaging client abstraction is built here, so getting the interface right pays off twice.
 
 ### Included
+- Channel-agnostic `NotificationChannel` interface (`send(recipient, message) -> status`)
+- SMS adapter (primary/default channel) — e.g., a local telco gateway or Twilio SMS
+- WhatsApp adapter (optional, added when/if Business API approval comes through) — same interface, swapped in without touching scheduler or template logic
 - Configurable reminder templates with variable substitution
-- Manual reminder flow (Owner-triggered, single customer)
+- Manual reminder flow (Owner/Staff-triggered, single retailer)
 - Scheduled reminder flow (rule-based, Celery Beat)
-- Reminder delivery logging (sent/delivered/failed)
+- Reminder delivery logging (sent/delivered/failed) per channel
 - Staff note on reply outcome (promised payment, disputed, wrong number, follow-up)
 
 ### Excluded
-- Two-way conversational AI / auto-reply handling (explicitly out of MVP scope per FRD)
-- Notifications for reminder failures (Phase 5, needs the notification framework)
-- Reports on reminder effectiveness (Phase 3/5)
+- Two-way conversational AI / auto-reply handling
+- Voice/IVR channel (structurally trivial to add later given the abstraction, but not needed for MVP)
+- Notification framework for reminder failures — reuses Phase 5's future notification table, not built standalone here
+
+---
+
+## Feature: Notification Channel Abstraction
+
+**Epic 2.1 — Channel-Agnostic Messaging Layer**
+
+- **Story:** As the system, I need a single interface for sending messages so the product isn't tied to one vendor.
+  - Tasks:
+    - [BE] `NotificationChannel` abstract interface + `ChannelType` enum (`sms`, `whatsapp`) — **S**
+    - [DB] `reminder_log` table includes a `channel` column from day one (not retrofitted later) — **S**
+    - [BE] `SMSClient` adapter (send message, webhook/poll for delivery status if provider supports it) — **M**
+    - [BE] `WhatsAppClient` adapter — built to the same interface, wired in only once provider approval exists; can ship weeks later with zero changes to scheduler/template code — **M** (deferred until approval is in hand)
+  - Dependencies: none technically; this is the first thing built in Phase 2 specifically because everything else in this phase and later phases calls into it
+  - **Risk flag carried over, correctly de-risked now:** WhatsApp approval can proceed in parallel with everything else in this phase without blocking any of it.
 
 ---
 
 ## Feature: Reminder Templates
 
-**Epic 2.1 — Template Configuration**
+**Epic 2.2 — Template Configuration**
 
 - **Story:** As an Owner, I want to customize the reminder message with dynamic variables.
   - Tasks:
     - [DB] `reminder_templates` table (business_id, name, body_text, is_default) — **S**
-    - [BE] Template CRUD endpoints + variable-substitution engine (`{{customer_name}}`, `{{business_name}}`, `{{outstanding_amount}}`, `{{due_date}}`, `{{payment_instructions}}`) — **M**
+    - [BE] Template CRUD + variable-substitution engine (`{{retailer_name}}`, `{{business_name}}`, `{{outstanding_amount}}`, `{{due_date}}`, `{{payment_instructions}}`) — **M**
     - [FE] Template editor with live preview using sample data — **M**
   - Dependencies: `businesses` (Phase 1)
-
----
-
-## Feature: WhatsApp Integration Layer
-
-**Epic 2.2 — Messaging Provider Integration**
-
-- **Story:** As the system, I need a reliable way to send WhatsApp messages and know delivery status.
-  - Tasks:
-    - [Integration] Evaluate & integrate WhatsApp Business Cloud API (Meta) or Twilio WhatsApp API — **L** (approval/verification lead time is the real risk here, start this in parallel with Epic 1.x if possible)
-    - [BE] `WhatsAppClient` service abstraction (send message, webhook receiver for delivery status) — **M**
-    - [BE] `POST /webhooks/whatsapp/status` — updates `reminder_log.status` — **M**
-    - [DB] `reminder_log` table (customer_id, template_id, message_body, sent_at, status[sent/delivered/failed], sent_by, staff_note) — **S**
-  - Dependencies: none technically, but **start provider verification in week 1** since business/API approval can take days
-  - **Risk flag:** This is the single external dependency most likely to cause schedule slippage — kick off provider onboarding before writing any code for this epic.
 
 ---
 
@@ -237,11 +105,11 @@ This is the product's actual differentiator and the reason a customer pays a pre
 
 **Epic 2.3 — Send Reminder Now**
 
-- **Story:** As an Owner, I want to preview and send a reminder to one customer on demand.
+- **Story:** As an Owner/Staff, I want to preview and send a reminder to one retailer on demand, through whichever channel is configured as default.
   - Tasks:
-    - [BE] `POST /customers/{id}/reminders/send` — renders template, calls `WhatsAppClient`, writes `reminder_log` — **M**
-    - [FE] "Send Reminder" button on customer profile → preview modal → confirm/send — **M**
-    - [FE] Reminder history tab on customer profile (date, time, user, template, status) — **M**
+    - [BE] `POST /customers/{id}/reminders/send` — renders template, calls the configured `NotificationChannel`, writes `reminder_log` with channel used — **M**
+    - [FE] "Send Reminder" button on retailer profile → preview modal → confirm/send — **M**
+    - [FE] Reminder history tab on retailer profile (date, time, user, template, channel, status) — **M**
   - Dependencies: Epics 2.1, 2.2
 
 ---
@@ -250,90 +118,141 @@ This is the product's actual differentiator and the reason a customer pays a pre
 
 **Epic 2.4 — Reminder Rules & Automation**
 
-- **Story:** As an Owner, I want to define a rule ("remind 7 days after invoice, every 3 days, stop after payment, max 5 reminders") that runs automatically.
+- **Story:** As an Owner, I want a rule ("remind 7 days after invoice, every 3 days, stop after payment, max 5 reminders") that runs automatically.
   - Tasks:
-    - [DB] `reminder_rules` table (business_id, days_after_invoice, frequency_days, stop_after_payment, max_reminders, active) — **S**
+    - [DB] `reminder_rules` table (business_id, days_after_invoice, frequency_days, stop_after_payment, max_reminders, active, preferred_channel) — **S**
     - [BE] Rule CRUD endpoints — **S**
-    - [FE] Rule builder UI — **M**
-  - Dependencies: Epic 2.1
+    - [FE] Rule builder UI (incl. channel selection) — **M**
+  - Dependencies: Epic 2.2
 
-- **Story:** As the system, I want a scheduler that evaluates all active rules daily and sends qualifying reminders.
+- **Story:** As the system, I want a scheduler that evaluates all active rules daily and dispatches qualifying reminders through the right channel.
   - Tasks:
-    - [Infra] Stand up Redis + Celery worker + Celery Beat — **M**
-    - [BE] Celery Beat periodic task (`run_reminder_scheduler`, daily) — queries customers matching rule criteria (overdue days, reminder count < max, outstanding > 0) — **L**
+    - [Infra] Redis + Celery worker + Celery Beat — **M**
+    - [BE] Celery Beat periodic task (`run_reminder_scheduler`, daily) — queries retailers matching rule criteria (overdue days, reminder count < max, outstanding > 0) — **L**
     - [BE] Skip logic: no reminder when outstanding balance is zero — **S**
-    - [BE] Idempotency guard (don't double-send if scheduler retries) — **S**
-  - Dependencies: Epic 2.2 (WhatsApp client), Epic 1.4 (transaction/balance data), Epic 2.4 rule storage
+    - [BE] Idempotency guard (uses the `idempotency_key` column already added to `transactions`; mirror the same pattern for reminder dispatch) — **S**
+  - Dependencies: Epic 2.1 (channel abstraction), Phase 1 transaction/balance data, Epic 2.4 rule storage
 
-**Parallelization:** Redis/Celery infra setup can happen in parallel with template + manual-send work — different engineer, no shared code path until the scheduler task itself is written.
+**Parallelization:** Redis/Celery infra setup can happen in parallel with template + manual-send work — different engineer, converging only at the scheduler task itself.
 
 ---
 
-## Feature: Reply Tracking
+## Feature: Reply / Outcome Tracking
 
 **Epic 2.5 — Delivery & Outcome Tracking**
 
-- **Story:** As an Owner, I want to log what happened after a reminder (promised payment, disputed, etc.) since auto-reply parsing is out of scope.
+- **Story:** As an Owner, I want to log what happened after a reminder since auto-reply parsing is out of scope.
   - Tasks:
     - [BE] `PATCH /reminder-log/{id}/note` — **S**
     - [FE] Note dropdown on reminder history row — **S**
-  - Dependencies: Epic 2.2/2.3
+  - Dependencies: Epic 2.3
 
 ---
 
 ### Phase 2 Build Order
-1. **Integration (start immediately, longest lead time):** WhatsApp provider account setup & approval
-2. **Database:** `reminder_templates` → `reminder_log` → `reminder_rules`
-3. **Backend:** WhatsApp client abstraction → manual send endpoint → Celery/Redis infra → scheduled task
-4. **Frontend:** Template editor → manual send UI → reminder history → rule builder
+1. **Backend:** Channel abstraction (`NotificationChannel`) → SMS adapter → template engine → manual send endpoint → Celery/Redis infra → scheduled task → (WhatsApp adapter whenever approval lands, in parallel, non-blocking)
+2. **Database:** `reminder_templates` → `reminder_log` (with `channel` column from the start) → `reminder_rules`
+3. **Frontend:** Template editor → manual send UI → reminder history → rule builder
 
 ### Phase 2 Parallelization
-- Engineer A: WhatsApp provider integration + Celery/Redis infra (backend-heavy)
-- Engineer B: Template editor + manual reminder UI (can be built against a stub `WhatsAppClient` that logs instead of sends)
-- Converge on end-to-end testing once both are ready
+- Engineer A: SMS integration + Celery/Redis infra + scheduler (critical path, no external approval dependency)
+- Engineer B: Template editor + manual reminder UI (built against the `NotificationChannel` interface, channel-blind)
+- WhatsApp Business API approval process can be kicked off on day one and slotted in whenever it clears, without blocking ship date
+
+---
+
+# Phase 2.5 — Minimum-Viable Credit Risk Engine (pulled forward)
+
+### Business Goal
+This is the product's actual differentiator versus every existing ledger/distribution tool in this market: a live, per-retailer risk signal, not a static credit limit or an after-the-fact aging report. It needs to exist as early as possible because it's the reason a distributor pays a premium over "just a ledger."
+
+### Why This Comes Before Phase 3/4
+- The scoring inputs (payment delay, outstanding amount, credit utilization, overdue invoice count) are available from Phase 1 transaction data alone — it does not need Phase 2's reminder history to produce a useful first version (a fuller version, refined with reminder-response data, can follow in Phase 5).
+- Every week this ships later is a week of "just a ledger with SMS reminders" — exactly the commodity position competitors already occupy. Shipping even a basic version early changes the sales conversation from day one of the pilot.
+- This is a clean example of building the stub now and filling it in later rather than the reverse: the full version (Phase 5) extends this rather than replacing it.
+
+### Included
+- Basic risk-scoring service (pure function): inputs → score + level (Low/Medium/High)
+- Hook into the existing shared transaction-creation service (single choke point, per Phase 1's design) so score recalculates on every transaction with no separate write path
+- Risk badge + recommendation shown on the Credit Sale flow (already stubbed in Phase 1's `credit-sale-context` endpoint) and on the retailer profile
+- Nightly Celery batch recalculation as a safety net
+
+### Excluded
+- Reminder-response-derived signals (needs Phase 2's history to mature) — added in Phase 5
+- ML/predictive scoring — explicitly future work
+- Notification triggers on risk level change — needs Phase 5's notification framework
+
+---
+
+## Feature: Risk Scoring (MVP)
+
+**Epic 2.5.1 — Basic Risk Engine**
+
+- **Story:** As the system, I want to recalculate a retailer's risk score after every transaction.
+  - Tasks:
+    - [DB] `customer_risk_metrics` table (customer_id, risk_score, risk_level, avg_payment_delay, total_overdue_amount, last_calculated_at) — separate table, not columns bolted onto the hot `customers` row — **S**
+    - [BE] Risk-scoring service: pure function `(avg_payment_delay, outstanding_amount, credit_utilization, overdue_invoice_count) → (score, level)` — **M**
+    - [BE] Hook risk recalculation into the Phase 1 transaction-creation service — **M**
+    - [BE] Celery nightly batch recalculation (safety net for any missed triggers) — **S**
+  - Dependencies: Phase 1 `transactions` table (already exists and is sufficient on its own for this version)
+
+- **Story:** As Staff, I want to see the retailer's risk level and recommendation before completing a credit sale.
+  - Tasks:
+    - [BE] Extend `GET /customers/{id}/credit-sale-context` (already stubbed with a placeholder in Phase 1) with real risk data — **S**
+    - [FE] Risk badge + recommendation banner on Credit Sale form — **S**
+  - Dependencies: Epic 2.5.1 scoring service
+
+**Parallelization:** Fully independent of Phase 2's messaging work — can be built by a second engineer in parallel, converging only in the dashboard (Phase 3) and notifications (Phase 5) later.
+
+---
+
+### Phase 2.5 Build Order
+1. **Database:** `customer_risk_metrics`
+2. **Backend:** Scoring function → hook into transaction service → nightly batch job → extend credit-sale-context endpoint
+3. **Frontend:** Risk badge on Credit Sale form, risk indicator on retailer profile
 
 ---
 
 # Phase 3 — Statements, Ledger Export & Reports
 
 ### Business Goal
-Give the business owner professional, shareable documents (PDF statements, exportable reports) — this is what makes the tool feel "official" enough to send to customers and use for their own accounting/reconciliation. It also starts surfacing the ROI of Phase 2 (e.g., collection reports).
+Give the distributor professional, shareable documents — this is what makes the tool feel credible enough to send to retailers and to use for the distributor's own reconciliation. It also starts surfacing collections ROI now that Phase 2 reminder activity and Phase 2.5 risk data both exist.
 
 ### Why This Comes Before Phase 4/5
-- Statements and reports are **read-only projections** of existing ledger + reminder data — zero new write-paths, so they're low-risk to build and are a fast way to add perceived product maturity.
-- Doing this before multi-user/staff roles avoids having to retrofit permission checks into every report/export endpoint twice.
-- Doing this before the risk engine means reports (esp. Overdue Report, Collection Summary) can later be enriched with risk scores rather than built around them from scratch.
+- Statements and reports are read-only projections of existing ledger, reminder, and risk data — zero new write-paths, low risk, fast to build, and a visible jump in product maturity.
+- Building this before multi-user/staff roles avoids retrofitting permission checks into every report/export endpoint twice.
+- Doing this after the risk engine (not before, as in the original plan) means the Overdue Report and Collection Summary can be built with risk-level columns from the start instead of being retrofitted.
 
 ### Included
-- PDF generation for customer statements
+- PDF generation for retailer statements, with distributor branding
 - PDF + Excel export for ledger view
-- Reports module: Outstanding Customers, Payments Received, Sales Report, Overdue Report, Collection Summary, Customer Ledger Report
-- Report filters (date, customer, amount range) + PDF/Excel export
-- WhatsApp Share of statements
+- Reports: Outstanding Retailers, Payments Received, Sales Report, Overdue Report (risk-level aware), Collection Summary, Retailer Ledger Report
+- Report filters (date, retailer, amount range) + PDF/Excel export
+- Statement sharing via the Phase 2 `NotificationChannel` abstraction (SMS link or WhatsApp, not hard-coded)
 
 ### Excluded
 - Staff-level access to reports (Phase 4 — permission gating)
-- Risk-score columns in reports (Phase 5)
+- Reminder-response-derived risk refinements (Phase 5)
 
 ---
 
-## Feature: Customer Statement
+## Feature: Retailer Statement
 
 **Epic 3.1 — Statement Generation**
 
-- **Story:** As an Owner, I want to generate a PDF statement for a customer for any date range.
+- **Story:** As an Owner, I want to generate a PDF statement for a retailer for any date range.
   - Tasks:
-    - [BE] `GET /customers/{id}/statement?date_from&date_to` — computes opening balance, transactions in range, closing balance — **M**
-    - [BE] PDF rendering service (e.g., WeasyPrint/Playwright-to-PDF) with business branding (logo, address) — **L**
+    - [BE] `GET /customers/{id}/statement?date_from&date_to` — opening balance, transactions in range, closing balance — **M**
+    - [BE] PDF rendering service (WeasyPrint/Playwright-to-PDF) with distributor branding — **L**
     - [FE] "Generate Statement" modal with date range picker + preview — **M**
   - Dependencies: Phase 1 ledger data, Phase 1 business profile (branding)
 
-- **Story:** As an Owner, I want to share a statement directly via WhatsApp.
+- **Story:** As an Owner, I want to share a statement directly through whichever reminder channel is active.
   - Tasks:
     - [BE] Statement PDF upload to storage + shareable link generation — **M**
-    - [BE] Reuse `WhatsAppClient` from Phase 2 to send document link — **S**
-    - [FE] "Share via WhatsApp" button — **S**
-  - Dependencies: Epic 2.2 (WhatsApp client), Epic 3.1 PDF generation
+    - [BE] Reuse the Phase 2 `NotificationChannel` abstraction to send the document link (works whether the active channel is SMS or WhatsApp) — **S**
+    - [FE] "Share" button (channel-agnostic label, not "Share via WhatsApp") — **S**
+  - Dependencies: Epic 2.1 (channel abstraction), Epic 3.1 PDF generation
 
 ---
 
@@ -341,11 +260,11 @@ Give the business owner professional, shareable documents (PDF statements, expor
 
 **Epic 3.2 — Ledger PDF/Excel Export**
 
-- **Story:** As an Owner, I want to export the filtered customer ledger view.
+- **Story:** As an Owner, I want to export the filtered retailer ledger view.
   - Tasks:
     - [BE] `GET /customers/{id}/ledger/export?format=pdf|xlsx` (reuses PDF service; Excel via `openpyxl`) — **M**
     - [FE] Export button on ledger view (respects active filters) — **S**
-  - Dependencies: Epic 1.5, Epic 3.1 PDF service
+  - Dependencies: Epic 1.5 (Phase 1 ledger view), Epic 3.1 PDF service
 
 ---
 
@@ -353,55 +272,57 @@ Give the business owner professional, shareable documents (PDF statements, expor
 
 **Epic 3.3 — Standard Reports**
 
-- **Story:** As an Owner, I want an Outstanding Customers report.
+- **Story:** As an Owner, I want an Outstanding Retailers report.
   - Tasks:
     - [BE] `GET /reports/outstanding-customers?date&amount_min&amount_max` — **M**
-    - [FE] Report table + filter bar (shared filter component reused across all reports) — **M**
+    - [FE] Report table + shared filter bar component (reused across all reports) — **M**
   - Dependencies: Phase 1 data
 
-- **Story:** As an Owner, I want Payments Received, Sales, Overdue, Collection Summary, and Customer Ledger reports.
+- **Story:** As an Owner, I want Payments Received, Sales, Overdue, Collection Summary, and Retailer Ledger reports — with the Overdue Report and Collection Summary including risk level per retailer.
   - Tasks:
-    - [BE] 5× report query endpoints (mostly parameterized aggregate queries on `transactions`) — **L** total (roughly S–M each)
+    - [BE] 5× report query endpoints, Overdue Report and Collection Summary joined against `customer_risk_metrics` — **L** total
     - [FE] Reuse report table/filter shell for each — **M** total
-  - Dependencies: Epic 3.3 shared filter component (build once, reuse 6×)
+  - Dependencies: Epic 3.3 shared filter component, Phase 2.5 risk data
 
 - **Story:** As an Owner, I want to export any report to PDF/Excel.
   - Tasks:
     - [BE] Generic export wrapper around report query results — **M**
-    - [FE] Export button standardized across all report screens — **S**
+    - [FE] Standardized export button across all report screens — **S**
   - Dependencies: Epic 3.2 PDF/Excel infra (reused, not rebuilt)
 
-**Parallelization:** Once the shared filter component and export wrapper exist, the 6 individual reports are near-identical in shape and can be split across 2 engineers (3 reports each) or done rapidly by one.
+**Parallelization:** Once the shared filter component and export wrapper exist, the 6 reports are near-identical in shape and split cleanly across 2 engineers.
 
 ---
 
 ### Phase 3 Build Order
-1. **Backend:** PDF rendering service (shared infra) → Statement endpoint → Ledger export → Report query endpoints (build the generic export wrapper once, reuse everywhere)
+1. **Backend:** PDF rendering service → Statement endpoint → Ledger export → Report query endpoints (generic export wrapper built once, reused everywhere)
 2. **Frontend:** Statement modal → Ledger export button → Shared report table/filter shell → 6 report pages
-3. **Database:** No new tables required — this phase is purely additive/read-only on top of Phase 1–2 schema (statement links can optionally get a lightweight `statement_shares` table if link expiry/tracking is desired)
-4. **Integrations:** Reuses Phase 2's `WhatsAppClient`; new PDF library integration
+3. **Database:** No new tables required beyond an optional `statement_shares` table if link expiry/tracking is desired
+4. **Integrations:** Reuses Phase 2's `NotificationChannel`; new PDF library integration
 
 ---
 
 # Phase 4 — Multi-User Collaboration (Staff Roles + Permissions + Audit Log)
 
 ### Business Goal
-Unlock businesses with more than one employee — most real credit-sale businesses have counter staff who aren't the owner. This phase converts the product from a single-owner tool into a team tool, which materially increases willingness to pay (more seats, more entrenched workflow).
+Unlock distributors with counter staff and field salesmen — essentially every real distributor above a one-person operation. This converts the product from a single-owner tool into a team tool, materially increasing willingness to pay.
 
 ### Why This Comes Before Phase 5/6
-- Introducing staff accounts *before* the risk engine and notifications means permission checks only need to be retrofitted once (on Phase 1–3 endpoints), rather than needing to be designed twice.
-- The audit log is far more valuable once there's more than one actor in the system — with a single owner, "who did this" is a trivial question; with staff, it's essential for trust and dispute resolution.
-- This is intentionally *not* Phase 2, because a single owner running the pilot doesn't need staff accounts to prove the WhatsApp/statement value — adding multi-user complexity earlier would have slowed the highest-value phases down.
+- Introducing staff accounts before the risk engine's full version and notifications means permission checks only need to be retrofitted once, across Phases 1–3, rather than designed twice.
+- The audit log is far more valuable once there's more than one actor — with staff and salesmen entering data, "who recorded this payment" is essential for trust and dispute resolution, a known pain point in this specific ICP.
+- Intentionally not earlier: a single-owner pilot doesn't need staff accounts to prove the ledger/reminders/risk-score value; adding multi-user complexity earlier would have slowed the highest-value phases down.
 
 ### Included
-- Staff role with configurable permissions (create customers, record sales/payments, view ledger, send reminders manually)
+- Staff role with configurable permissions (create retailers, record sales/payments, view ledger, send reminders manually)
 - Owner/Manager/Staff role model
 - User invite, disable, password reset, permission assignment
-- Full audit log (login, customer creation, sales, payments, reminder sent, user changes, settings changes)
+- Full audit log (login, retailer creation, sales, payments, reminder sent, user changes, settings changes)
+- **New consideration for this ICP:** if field data-entry by salesmen turns out to be real (validate in pilot interviews), a lightweight "assigned retailers per staff member" grouping — not a full route/PJP system, just enough to scope what a salesman sees
 
 ### Excluded
-- Fine-grained per-customer permission scoping (not in FRD, correctly out of scope)
-- SSO/2FA (not required by MVP FRD)
+- Fine-grained per-retailer permission scoping beyond assigned-retailer grouping
+- Full route/PJP planning, GPS tracking (that's DMS-breadth territory, explicitly out of scope — see Phase 6 non-goals)
+- SSO/2FA
 
 ---
 
@@ -411,12 +332,12 @@ Unlock businesses with more than one employee — most real credit-sale business
 
 - **Story:** As an Owner, I want to invite a staff member with a defined permission set.
   - Tasks:
-    - [DB] Extend `users` with `role` enum (owner/manager/staff) + `permissions` JSONB column (or a `user_permissions` join table if finer control is desired later — recommend JSONB for MVP speed) — **S**
+    - [DB] Extend `users` with `permissions` JSONB column (role enum already exists from Phase 1) — **S**
     - [BE] `POST /users/invite` (email invite token flow) — **M**
-    - [BE] Permission-check dependency/decorator applied to existing Phase 1–3 endpoints (create customer, record sale/payment, view ledger, send reminder) — **L** (retrofit work across many endpoints, budget accordingly)
+    - [BE] Permission-check dependency/decorator applied to existing Phase 1–3 endpoints — **L** (retrofit across many endpoints, budget accordingly)
     - [FE] User invite form + permission checkbox matrix — **M**
   - Dependencies: Phase 1 `users` table
-  - **Note:** This is the largest single task in the roadmap because it touches nearly every existing write endpoint — schedule it with buffer.
+  - **Note:** largest single task in the roadmap — touches nearly every existing write endpoint; schedule with buffer.
 
 - **Story:** As an Owner, I want to disable a user or reset their password.
   - Tasks:
@@ -424,10 +345,17 @@ Unlock businesses with more than one employee — most real credit-sale business
     - [FE] User management table with actions — **M**
   - Dependencies: Epic 4.1 role model
 
-**Story:** As Staff, I want my UI to only show actions I'm permitted to perform.
+- **Story:** As Staff, I want my UI to only show actions I'm permitted to perform.
   - Tasks:
-    - [FE] Global permission-aware component wrapper (hide/disable buttons based on JWT-embedded permissions) — **M**
-  - Dependencies: BE permission decorator above must return permission set on login
+    - [FE] Global permission-aware component wrapper — **M**
+  - Dependencies: BE permission decorator returning permission set on login
+
+- **Story (conditional on pilot findings):** As a salesman, I want to only see retailers assigned to my route.
+  - Tasks:
+    - [DB] `assigned_customers` join table or a simple `assigned_staff_id` column on `customers` — **S**
+    - [BE] Scope retailer list/ledger queries by assignment for staff role — **S**
+    - [FE] Filter retailer list by "my retailers" — **S**
+  - Dependencies: Epic 4.1 — **only build this if pilot interviews confirm field-entry-by-salesman is the real workflow; skip if owners/counter staff enter data centrally.**
 
 ---
 
@@ -438,61 +366,52 @@ Unlock businesses with more than one employee — most real credit-sale business
 - **Story:** As an Owner, I want an immutable log of all significant actions.
   - Tasks:
     - [DB] `audit_log` table (user_id, action, entity_type, entity_id, timestamp, metadata JSONB) — **S**
-    - [BE] Audit-writing middleware/decorator hooked into: login, customer creation, sales, payments, reminder sent, user changes, settings changes — **L** (similar retrofit scope to permissions; do both passes together for efficiency)
+    - [BE] Audit-writing middleware/decorator on: login, retailer creation, sales, payments, reminder sent, user changes, settings changes — **L** (do this in the same pass as the permission retrofit, endpoint-by-endpoint)
     - [FE] Audit log viewer (filterable by user, action, date) — **M**
-  - Dependencies: Epic 4.1 (role/user model), touches most Phase 1–3 write paths
+  - Dependencies: Epic 4.1
 
-**Parallelization:** Permission retrofit (Epic 4.1) and audit-log retrofit (Epic 4.2) touch the *same* endpoints — do them in a single pass per endpoint rather than two separate sweeps, ideally by one engineer working endpoint-by-endpoint while a second engineer builds the two new UI screens (user management, audit log viewer) against contract stubs.
+**Parallelization:** Permission retrofit and audit-log retrofit touch the same endpoints — do both in a single pass per endpoint, one engineer working through them while a second builds the two new UI screens against contract stubs.
 
 ---
 
 ### Phase 4 Build Order
-1. **Database:** `users` extension → `audit_log`
-2. **Backend:** Invite/disable/reset endpoints → permission decorator → sweep all existing endpoints (customer, transaction, reminder, settings) adding both permission checks and audit writes together
-3. **Frontend:** User management screen → permission-aware UI wrapper → audit log viewer
-4. **Integrations:** Reuses existing email (invite) — if not already built in Phase 1's password reset, build minimal transactional email sending here
+1. **Database:** `users` extension → `audit_log` → (conditional) `assigned_customers`
+2. **Backend:** Invite/disable/reset endpoints → permission decorator → single sweep across existing endpoints adding both permission checks and audit writes
+3. **Frontend:** User management screen → permission-aware UI wrapper → audit log viewer → (conditional) "my retailers" filter
+4. **Integrations:** Minimal transactional email for invites (if not already built in Phase 1's password reset)
 
 ---
 
-# Phase 5 — Intelligence Layer (Credit Risk Engine + Notifications + Advanced Analytics)
+# Phase 5 — Full Intelligence Layer (Risk Engine v2 + Notifications + Advanced Analytics)
 
 ### Business Goal
-Move from "record and remind" to "advise." This is where the product starts proactively telling the owner *who's risky* and *what needs attention*, which is a strong retention/upsell feature once the core workflow is habitual.
+Extend the Phase 2.5 risk-score MVP into a fuller signal using reminder-response history, and layer proactive notifications on top of events already being generated across Phases 1–4. This is where the product moves from "flags risk" to "actively surfaces what needs attention," strengthening retention and justifying premium pricing.
 
 ### Why This Comes After, Not Before
-- The risk engine's core inputs (average payment delay, credit utilization, overdue invoice count) are all derived from **historical transaction and reminder data** — it needs Phases 1–2 running for real weeks/months to produce meaningful scores. Building it earlier would mean it launches with no data to be useful.
-- Notifications are naturally layered on top of events already being generated by Phases 1–4 (large sale, large payment, credit limit exceeded, reminder failed, high risk detected) — no new event sources needed, just new subscribers to existing write paths.
-- This is deliberately positioned after multi-user support (Phase 4) so risk indicators and notifications can already be scoped to the right recipients/permissions (e.g., only Owner/Manager sees risk-based recommendations).
+- The richer inputs (reminder-response patterns, not just raw payment delay) only become meaningful after Phase 2 has been running for real weeks — this is why the *basic* version shipped in Phase 2.5 instead of waiting for this phase.
+- Notifications are naturally layered on top of events already generated by Phases 1–4 (large sale, large payment, credit limit exceeded, reminder failure, high risk) — no new event sources needed, just new subscribers.
+- Positioned after multi-user support (Phase 4) so notifications and risk-based recommendations can be scoped to the right recipients (e.g., only Owner/Manager sees risk recommendations, not all staff).
 
 ### Included
-- Credit risk score recalculation on every transaction
-- Risk levels (Low/Medium/High) + recommendation text, shown before every new sale
-- Notification system (large payment, large sale, credit limit exceeded, reminder failed, high-risk customer)
-- Expanded dashboard analytics (collection rate, avg payment delay, monthly trend, top outstanding, overdue customers list)
+- Risk scoring refined with reminder-response signals (promised-but-not-paid patterns, dispute frequency)
+- Notification system (large payment, large sale, credit limit exceeded, reminder failure, high-risk retailer detected)
+- Expanded dashboard analytics (collection rate, avg payment delay, monthly trend, top outstanding, overdue/high-risk retailer lists)
 
 ### Excluded
-- Predictive/ML-based cash flow forecasting (explicitly future-release per FRD)
-- AI collection assistant (explicitly future-release)
+- Predictive/ML-based cash-flow forecasting
+- AI collection assistant
 
 ---
 
-## Feature: Credit Risk Engine
+## Feature: Risk Engine v2
 
-**Epic 5.1 — Risk Scoring**
+**Epic 5.1 — Refined Risk Scoring**
 
-- **Story:** As the system, I want to recalculate a customer's risk score after every transaction.
+- **Story:** As the system, I want to incorporate reminder-response patterns into the risk score.
   - Tasks:
-    - [DB] Add `risk_score`, `risk_level`, `avg_payment_delay`, `total_overdue_amount` columns to `customers` (or a separate `customer_risk_metrics` table — recommend separate table to avoid bloating the hot `customers` row) — **S**
-    - [BE] Risk-scoring service: pure function taking (avg_payment_delay, outstanding_amount, credit_utilization, overdue_invoice_count) → score + level — **M**
-    - [BE] Hook risk recalculation into the transaction-creation service from Phase 1 (single choke point makes this easy — this is exactly why Epic 1.4 was built as a shared service) — **M**
-    - [BE] Celery task to batch-recalculate nightly (safety net in case of any missed triggers) — **S**
-  - Dependencies: Phase 1 `transactions` table, Phase 2 reminder history (for delay calculation)
-
-- **Story:** As Staff, I want to see the customer's risk level and recommendation before completing a credit sale.
-  - Tasks:
-    - [BE] Extend `GET /customers/{id}/credit-sale-context` (already stubbed in Phase 1) with real risk data — **S**
-    - [FE] Risk badge + recommendation banner on Credit Sale form — **S**
-  - Dependencies: Epic 5.1 scoring service — this is a clean example of a Phase 1 stub being "filled in" rather than rebuilt
+    - [BE] Extend the Epic 2.5.1 scoring function with reminder-outcome inputs (promised-payment-not-honored count, dispute count) from `reminder_log` — **M**
+    - [BE] Re-run nightly batch recalculation with the extended function — **S**
+  - Dependencies: Phase 2.5 scoring service, Phase 2 reminder history (needs real weeks of data to be meaningful)
 
 ---
 
@@ -503,13 +422,13 @@ Move from "record and remind" to "advise." This is where the product starts proa
 - **Story:** As an Owner, I want to be notified of significant events without checking the dashboard constantly.
   - Tasks:
     - [DB] `notifications` table (business_id, type, message, entity_id, read_at, created_at) — **S**
-    - [BE] Notification-writing hooks on: payment recorded (if > threshold), credit sale recorded (if > threshold), credit limit exceeded, reminder send failure (Phase 2 webhook), risk level → High — **M**
+    - [BE] Notification-writing hooks: payment recorded (> threshold), credit sale recorded (> threshold), credit limit exceeded, reminder send failure, risk level → High — **M**
     - [BE] `GET /notifications`, `POST /notifications/{id}/read` — **S**
     - [FE] Notification bell + dropdown + unread badge — **M**
-  - Dependencies: Epic 5.1 (for high-risk trigger), Phase 2 webhook (for failure trigger), Phase 1 transaction service (for threshold triggers)
-  - Configurable thresholds: [BE] `notification_settings` in business settings — **S**
+    - [BE] Configurable thresholds in business settings — **S**
+  - Dependencies: Epic 5.1 (high-risk trigger), Phase 2 channel/webhook (failure trigger), Phase 1 transaction service (threshold triggers)
 
-**Parallelization:** Risk engine (5.1) and notification plumbing (5.2) can be built by two engineers in parallel — notifications only need an *event*, not the risk engine itself, except for the "high risk detected" trigger, which is the one integration point between the two epics.
+**Parallelization:** Risk engine v2 (5.1) and notification plumbing (5.2) can be built by two engineers in parallel — notifications only need an event, not the risk engine itself, except for the "high risk detected" trigger, the one integration point between the two epics.
 
 ---
 
@@ -517,48 +436,48 @@ Move from "record and remind" to "advise." This is where the product starts proa
 
 **Epic 5.3 — Dashboard v2**
 
-- **Story:** As an Owner, I want collection rate, average payment delay, and monthly trend visualized.
+- **Story:** As an Owner, I want collection rate, average payment delay, monthly trend, and a high-risk retailer list visualized.
   - Tasks:
-    - [BE] `GET /dashboard/analytics` (collection rate = payments/sales over period; monthly trend = grouped time-series query) — **M**
+    - [BE] `GET /dashboard/analytics` (collection rate, monthly trend time-series) — **M**
     - [FE] Chart components (trend line, collection rate gauge) — **M**
-    - [FE] Top Outstanding Customers + Overdue Customers widgets (reuses report queries from Phase 3) — **S**
-  - Dependencies: Phase 3 report queries (reused), Epic 5.1 risk data (for risk-sorted widgets)
+    - [FE] Top Outstanding + Overdue + High-Risk Retailer widgets (reuses Phase 3 report queries and Phase 5.1 risk data) — **S**
+  - Dependencies: Phase 3 report queries, Epic 5.1 risk data
 
 ---
 
 ### Phase 5 Build Order
-1. **Database:** `customer_risk_metrics` → `notifications`
-2. **Backend:** Risk-scoring service → hook into transaction service → notification hooks → dashboard analytics endpoint
-3. **Frontend:** Risk badge on sale form → notification bell → dashboard v2 widgets/charts
-4. **Integrations:** None new — this phase is entirely internal computation on existing data
+1. **Database:** Extend `customer_risk_metrics` usage → `notifications`
+2. **Backend:** Risk-scoring v2 → notification hooks → dashboard analytics endpoint
+3. **Frontend:** Refined risk display → notification bell → dashboard v2 widgets/charts
+4. **Integrations:** None new — entirely internal computation on existing data
 
 ---
 
 # Phase 6 — Onboarding Efficiency & Hardening (Data Import, Settings, Search, Security)
 
 ### Business Goal
-Reduce friction for businesses switching from Excel/paper (bulk import), round out configurability, and harden the system for scale/reliability now that the core product is proven. This is the phase where you optimize for *sales conversion* (easy migration) and *operational trust* (backups, full search).
+Reduce friction for distributors switching from notebooks/Excel (bulk import), round out configurability, and harden the system for scale now that the core product is proven. This is the phase optimizing for sales conversion and operational trust.
 
 ### Why This Comes Last
-- Data import is only worth building once the target schema (customers, transactions, risk fields) is fully stable — building it earlier risks rework every time an earlier phase adds a column.
-- Full global search (across invoices/ledger, not just customer name) is a quality-of-life feature best prioritized after the core workflows it searches *into* (ledger, reports, reminders) all exist.
-- Security hardening (automated backups, RBAC audit pass) is appropriately a "before general availability" gate rather than a Day 1 blocker for a pilot with 1–2 friendly customers.
+- Data import is only worth building once the target schema is fully stable — building earlier risks rework every time an earlier phase adds a column.
+- Full global search (across invoices/ledger, not just retailer name) is a quality-of-life feature best prioritized after the core workflows it searches into all exist.
+- Security hardening is appropriately a "before general availability" gate, not a Day 1 blocker for a pilot with 1–2 friendly distributors.
 
 ### Included
-- Data import (Customers, Opening Balances, Transactions) via Excel/CSV with validation
-- Full global search (customer name, phone, business name, invoice number)
-- Extended settings (statement branding, payment methods, reminder schedule defaults, credit limit defaults)
+- Data import (Retailers, Opening Balances, Transactions) via Excel/CSV with validation
+- Full global search (retailer name, phone, business name, invoice number)
+- Extended settings (statement branding, payment methods, reminder schedule defaults, credit limit defaults, active channel configuration)
 - Security hardening: automated daily backups, RBAC enforcement audit, final validation-rule sweep
 
-### Excluded (confirmed future releases per FRD)
-- Inventory/supplier management, purchase orders
-- Multi-branch support
-- Accounting integration
-- Financing/loan scoring
-- AI collection assistant, predictive cash flow analytics
-- Mobile application
-- Online payment gateway integration
-- ERP integrations
+### Explicit Non-Goals (confirmed out of scope — this is deliberately not a full DMS)
+- Inventory management, van sales, route/PJP planning, GPS tracking
+- Scheme and claims management (principal-to-distributor trade schemes)
+- Multi-branch/multi-warehouse support
+- Accounting/ERP integration, FBR e-invoicing
+- Financing/loan scoring, AI collection assistant, predictive cash-flow analytics
+- Native mobile application, online payment gateway integration
+
+**Why these stay excluded even long-term:** the product's competitive position is "fast to adopt, focused purely on retailer credit intelligence" versus heavier, multi-module distribution ERPs already established in this market. Building toward DMS feature parity would mean competing on their terms (implementation depth, sales infrastructure) rather than the terms where this product actually wins (speed of adoption, risk intelligence depth).
 
 ---
 
@@ -566,14 +485,14 @@ Reduce friction for businesses switching from Excel/paper (bulk import), round o
 
 **Epic 6.1 — Bulk Import**
 
-- **Story:** As an Owner, I want to import my existing customer list and opening balances from Excel/CSV.
+- **Story:** As an Owner, I want to import my existing retailer list and opening balances from Excel/CSV.
   - Tasks:
-    - [BE] File upload endpoint + parser (pandas/openpyxl) for Customers, Opening Balances, Transactions templates — **L**
-    - [BE] Validation pass: duplicate customers (by mobile), missing phone numbers, invalid amounts — returns row-level error report before commit — **M**
-    - [BE] Transactional bulk-insert (all-or-nothing per validated batch) using Phase 1's transaction-creation service for opening balances (so risk/audit hooks fire correctly) — **M**
+    - [BE] File upload endpoint + parser (pandas/openpyxl) for Retailers, Opening Balances, Transactions templates — **L**
+    - [BE] Validation pass: duplicate retailers (by mobile), missing phone numbers, invalid amounts — row-level error report before commit — **M**
+    - [BE] Transactional bulk-insert using Phase 1's transaction-creation service for opening balances (so risk/audit hooks fire correctly, not bypassed) — **M**
     - [FE] Import wizard: upload → validation report → confirm → success summary — **L**
-  - Dependencies: Phase 1 customer/transaction schema, Phase 4 audit log, Phase 5 risk hooks (import must trigger them, not bypass them)
-  - **Design note:** Route imported rows through the *same* internal services used by manual entry (Epic 1.3/1.4) rather than direct DB writes — this guarantees audit logs, risk recalculation, and validation rules stay consistent instead of drifting.
+  - Dependencies: Phase 1 schema, Phase 4 audit log, Phase 2.5/5 risk hooks
+  - **Design note carried over from original plan:** route imported rows through the same internal services used by manual entry — guarantees audit logs, risk recalculation, and validation rules stay consistent.
 
 ---
 
@@ -581,10 +500,10 @@ Reduce friction for businesses switching from Excel/paper (bulk import), round o
 
 **Epic 6.2 — Unified Search**
 
-- **Story:** As an Owner/Staff, I want one search box that finds customers or invoices by name, phone, business name, or invoice number.
+- **Story:** As an Owner/Staff, I want one search box that finds retailers or invoices by name, phone, business name, or invoice number.
   - Tasks:
     - [DB] Postgres full-text index (`tsvector`) across `customers` (name, business_name, mobile) and `transactions` (reference_number) — **M**
-    - [BE] `GET /search?q=` unified endpoint returning typed results (customer matches, transaction/invoice matches) — **M**
+    - [BE] `GET /search?q=` unified endpoint returning typed results — **M**
     - [FE] Global search bar in top nav with grouped results dropdown — **M**
   - Dependencies: Phase 1 schema (stable by now)
 
@@ -594,11 +513,11 @@ Reduce friction for businesses switching from Excel/paper (bulk import), round o
 
 **Epic 6.3 — Settings Completion**
 
-- **Story:** As an Owner, I want to configure statement branding, default payment methods, and default credit limits in one place.
+- **Story:** As an Owner, I want to configure statement branding, default payment methods, default credit limits, and active reminder channels in one place.
   - Tasks:
-    - [BE] `PATCH /settings` covering fields not already editable in Phase 1 profile (statement footer text, default credit limit, default payment methods list) — **S**
-    - [FE] Settings page consolidating: business profile (Phase 1), reminder templates/schedule (Phase 2), statement branding, payment methods, credit defaults — **M**
-  - Dependencies: Phases 1–2 settings surfaces (this epic mostly organizes/extends existing config into one screen)
+    - [BE] `PATCH /settings` covering fields not already editable (statement footer text, default credit limit, default payment methods, active channel priority order) — **S**
+    - [FE] Settings page consolidating: business profile, reminder templates/schedule/channels, statement branding, payment methods, credit defaults — **M**
+  - Dependencies: Phases 1–2 settings surfaces
 
 ---
 
@@ -608,19 +527,19 @@ Reduce friction for businesses switching from Excel/paper (bulk import), round o
 
 - **Story:** As the business, I need daily backups and a final RBAC/validation audit before go-live at scale.
   - Tasks:
-    - [Infra] Automated daily Postgres backup job (managed DB snapshot or `pg_dump` to object storage) — **M**
-    - [BE] RBAC audit: re-verify every endpoint from Phases 1–5 has the correct permission decorator (checklist pass, not new code) — **M**
-    - [BE] Validation-rule regression sweep against Section 24 rules (name/mobile mandatory, amount > 0, no future dates, credit limit ≥ 0, payment requires customer) — **S**
-    - [Infra] HTTPS/TLS termination confirmed in deployment config (likely already true if hosted on standard PaaS) — **S**
-  - Dependencies: All prior phases (this is a horizontal audit pass, not a vertical feature)
+    - [Infra] Automated daily Postgres backup job — **M**
+    - [BE] RBAC audit: re-verify every endpoint from Phases 1–5 has the correct permission decorator (checklist pass) — **M**
+    - [BE] Validation-rule regression sweep — **S**
+    - [Infra] HTTPS/TLS termination confirmed in deployment config — **S**
+  - Dependencies: All prior phases (horizontal audit pass, not a vertical feature)
 
-**Parallelization:** Epics 6.1–6.3 are independent features and split cleanly across 2 engineers; Epic 6.4 is best done as a shared checklist pass by both engineers in the final week before broader rollout.
+**Parallelization:** Epics 6.1–6.3 split cleanly across 2 engineers; Epic 6.4 is a shared checklist pass by both engineers in the final week before broader rollout.
 
 ---
 
 ### Phase 6 Build Order
-1. **Database:** Full-text search indexes (additive, no migration risk to existing data)
-2. **Backend:** Import validation/parsing service → import commit service (reusing core transaction service) → search endpoint → settings consolidation → RBAC/backup audit
+1. **Database:** Full-text search indexes (additive)
+2. **Backend:** Import validation/parsing → import commit service (reusing transaction service) → search endpoint → settings consolidation → RBAC/backup audit
 3. **Frontend:** Import wizard → global search bar → consolidated settings page
 4. **Integrations:** Object storage for backups; no new third-party APIs
 
@@ -629,27 +548,31 @@ Reduce friction for businesses switching from Excel/paper (bulk import), round o
 # Cross-Phase Dependency Summary
 
 ```
-Phase 1 (Ledger Core)
-   │  transactions table + transaction service is the load-bearing wall
+Phase 1 (Core Ledger — shipped)
+   │  transactions table + shared transaction service is the load-bearing wall
    ▼
-Phase 2 (WhatsApp Reminders) ──────┐
-   │  WhatsAppClient reused        │
-   ▼                               ▼
-Phase 3 (Statements/Reports)   Phase 5 depends on Phase 2's
-   │  PDF/export infra reused      reminder history for
-   ▼                               avg_payment_delay calc
+Phase 2 (Multi-Channel Reminders) ──────┐
+   │  NotificationChannel abstraction   │
+   │  reused everywhere below           │
+   ▼                                    ▼
+Phase 2.5 (Risk Engine MVP)         Phase 3 reuses NotificationChannel
+   │  hooks into shared txn service     for statement sharing
+   ▼
+Phase 3 (Statements/Reports)
+   │  risk-aware reports (Overdue, Collection Summary)
+   ▼
 Phase 4 (Staff/Permissions/Audit)
    │  retrofits permission + audit checks onto Phases 1–3 endpoints
    ▼
-Phase 5 (Risk Engine/Notifications/Analytics)
-   │  reads Phase 1 transactions + Phase 2 reminder log
+Phase 5 (Risk Engine v2/Notifications/Analytics)
+   │  extends Phase 2.5 scoring with Phase 2 reminder-response data
    │  scoped by Phase 4 permissions
    ▼
 Phase 6 (Import/Search/Settings/Hardening)
    │  routes through Phase 1 services; audits Phases 1–5 endpoints
 ```
 
-**Key architectural decision that pays off repeatedly:** building a single, shared **transaction-creation service** in Phase 1 (Epic 1.4) — rather than letting Credit Sale, Payment, Data Import, and future flows each write to the `transactions` table directly — is what makes Phase 5 (risk recalculation) and Phase 4 (audit logging) cheap to bolt on later instead of requiring a rewrite.
+**Key architectural decision that pays off repeatedly (unchanged from the original plan):** the single, shared **transaction-creation service** built in Phase 1 is what makes both the risk engine (2.5 and 5) and audit logging (4) cheap to bolt on instead of requiring a rewrite. **The equivalent decision made in this revision** is the Phase 2 `NotificationChannel` abstraction — it's what makes the WhatsApp dependency optional instead of foundational, and it's reused by statement sharing (3) and notification delivery (5) without rework.
 
 ---
 
@@ -657,19 +580,20 @@ Phase 6 (Import/Search/Settings/Hardening)
 
 | Phase | Backend-heavy work | Frontend-heavy work | Notes |
 |---|---|---|---|
-| 1 | Auth, schema, transaction service | Auth pages, customer/ledger UI | Highest-risk phase for schema decisions — get transaction model right |
-| 2 | WhatsApp integration, Celery/Redis | Template editor, reminder UI | Kick off WhatsApp provider approval on Day 1 of this phase (lead time risk) |
-| 3 | PDF/export service, report queries | Statement modal, report screens | Mostly parallelizable once shared PDF/filter components exist |
+| 1 | *(shipped)* | *(shipped)* | Foundation — no rework needed |
+| 2 | Channel abstraction, SMS adapter, Celery/Redis | Template editor, reminder UI | WhatsApp adapter slots in later, non-blocking |
+| 2.5 | Risk-scoring service, hook into txn service | Risk badge on sale form | Fully parallel to Phase 2 — different engineer, no shared code path |
+| 3 | PDF/export service, report queries (risk-aware) | Statement modal, report screens | Mostly parallelizable once shared components exist |
 | 4 | Permission + audit retrofit (largest single task) | User mgmt, audit log viewer | Budget extra time — touches nearly every prior endpoint |
-| 5 | Risk scoring, notification hooks | Risk badges, notification bell, charts | Entirely internal computation — no new external integrations |
+| 5 | Risk scoring v2, notification hooks | Refined risk display, notification bell, charts | Entirely internal computation — no new external integrations |
 | 6 | Import service, search index, RBAC audit | Import wizard, global search, settings | Final phase before scaled go-live |
 
 ---
 
 # Why This Sequencing Minimizes Risk
 
-1. **Revenue-relevant value ships in Phase 1–2**, not at the end — a pilot customer can be using and paying for the product after Phases 1–2 (roughly 5–7 weeks), well before staff accounts, risk scoring, or import tooling exist.
-2. **The riskiest external dependency (WhatsApp Business API approval) is surfaced in Phase 2**, early enough to absorb delays without blocking the whole roadmap, but not so early that it blocks proving the core ledger works.
-3. **Multi-user complexity (Phase 4) is deferred until the single-user workflows are proven**, avoiding permission-model rework that would happen if roles were designed before the endpoints they gate even existed.
-4. **The risk/intelligence layer (Phase 5) is sequenced after there's real data to be intelligent about** — shipping it earlier would mean launching a feature with nothing meaningful to show.
-5. **Import and hardening (Phase 6) are last** because they're about *reducing friction and increasing trust at scale* — valuable for growth, not for proving the core value proposition.
+1. **Revenue-relevant value ships in Phase 1–2.5**, not at the end — a pilot distributor can be using and paying for the product after the ledger, SMS-first reminders, and a basic risk score exist, without waiting on WhatsApp approval or the full intelligence layer.
+2. **The riskiest external dependency (WhatsApp Business API) is now optional, not load-bearing** — it can be pursued in parallel with everything else and integrated whenever it clears, with zero schedule impact on Phase 2 shipping.
+3. **The differentiating feature (risk scoring) ships early, not late** — this is the single biggest change from the original plan and directly addresses the competitive reality that ledgers and basic reminders are already commodity features among existing distribution software in this market.
+4. **Multi-user complexity (Phase 4) is deferred until single-user workflows are proven**, avoiding permission-model rework that would happen if roles were designed before the endpoints they gate exist.
+5. **Import and hardening (Phase 6) are last** because they're about reducing friction and increasing trust at scale — valuable for growth, not for proving the core value proposition.
