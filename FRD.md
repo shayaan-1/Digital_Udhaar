@@ -1,16 +1,18 @@
 # Functional Requirements Document (FRD)
 
-## Product: WhatsApp-Based Credit Recovery System
+## Product: Distributor Credit Intelligence Platform
 
-**Version:** **MVP** 1.0
+**Version:** MVP 2.0 (repositioned from the original WhatsApp-Based Credit Recovery System — schema and Phase 1 unchanged)
 
 ---
 
-# 1. Purpose of the project
+# 1. Purpose of the Project
 
-The system enables businesses that sell on credit to digitally manage customer ledgers, monitor outstanding balances, automate payment reminders through WhatsApp, and generate professional account statements.
+The system enables distributors who sell on credit to their retailer base to digitally manage retailer ledgers, monitor outstanding balances and credit risk in real time, automate collection reminders across multiple channels, and generate professional account statements and receivables reports.
 
-The primary business objective is to reduce overdue receivables and improve cash flow.
+The primary business objective is to reduce cash leakage and bad debt from retailer credit, and to give distributor owners a forward-looking view of which retailers are becoming credit risks — not just a record of what already happened.
+
+**Positioning note:** the system is validated first with FMCG distributors (Lahore pilot), but the data model and workflows are vertical-agnostic — any distributor extending trade credit to a retailer base (pharma, hardware, building materials, cloth wholesale, etc.) fits the same model without schema changes.
 
 ---
 
@@ -18,554 +20,202 @@ The primary business objective is to reduce overdue receivables and improve cash
 
 ## 2.1 Owner
 
-Has full access to the system.
+Full access. Can manage retailers, create users, record sales/payments, configure reminder and risk rules, view analytics, export reports, view audit logs.
 
-Can:
+## 2.2 Manager
 
-- Manage customers
-- Create users
-- Record sales
-- Record payments
-- Configure reminder rules
-- View analytics
-- Export reports
-- View audit logs
+Same operational access as Staff plus reporting and user-management visibility (introduced in the multi-user phase; not required for MVP).
 
----
+## 2.3 Staff (incl. counter staff / salesmen)
 
-## 2.2 Staff
-
-Permissions configurable by owner.
-
-Possible permissions:
-
-- Create customers
-- Record sales
-- Record payments
-- View customer ledger
-- Send reminders manually
-
-Cannot:
-
-- Delete financial records
-- Change business settings
-- Manage users
+Permissions configurable by owner. Possible permissions: create retailers, record sales, record payments, view retailer ledger, send reminders manually. Cannot delete financial records, change business settings, or manage users.
 
 ---
 
 # 3. Business Profile
 
-During setup the business provides:
+During setup the distributor provides: business name, logo, address, phone number, WhatsApp number (optional — one of several channels, not required), currency (PKR), payment instructions (bank/Easypaisa/JazzCash).
 
-- Business name
-- Logo
-- Address
-- Phone number
-- WhatsApp number
-- Currency (**PKR**)
-- Payment instructions (Bank/Easypaisa/JazzCash)
-
-These details automatically appear on reminders and statements.
+These auto-populate reminders and statements.
 
 ---
 
-# 4. Customer Management
+# 4. Retailer Management
 
-Each customer contains:
+*(Referred to as "Customer" in the schema/backend — no data model change from Phase 1.)*
 
 ### Basic Information
-
-- Customer Name
-- Business Name (optional)
-- Mobile Number (required)
-- WhatsApp Number
-- Address
-- City
-- Notes
+Retailer/Shop Name, Business Name (optional), Mobile Number (required), WhatsApp Number (optional), Address, City, Notes.
 
 ### Credit Information
+Credit Limit, Opening Balance, Credit Status (Active / Restricted / Blocked).
 
-- Credit Limit
-- Opening Balance
-- Credit Status (Active / Restricted / Blocked)
+### System-Generated Fields
+Current Outstanding, Total Purchases, Total Payments, Last Purchase Date, Last Payment Date, Average Payment Delay, **Risk Score**, **Risk Level**, Total Overdue Amount.
 
-### System Generated Fields
-
-- Current Outstanding
-- Total Purchases
-- Total Payments
-- Last Purchase Date
-- Last Payment Date
-- Average Payment Delay
-- Risk Rating
-- Total Overdue Amount
-
-Deleting customers is not allowed if transactions exist.
-
-Customers may only be archived.
+Deleting retailers is not allowed if transactions exist. Retailers may only be archived.
 
 ---
 
 # 5. Ledger Management
 
-Every financial activity is recorded as a ledger transaction.
+Every financial activity is recorded as an immutable ledger transaction. Transaction Types: Credit Sale, Payment Received, Manual Adjustment (increase/decrease), Opening Balance.
 
-Transaction Types:
+Each transaction contains: Date, Amount, Reference Number, Description, Created By, Timestamp.
 
-- Credit Sale
-- Payment Received
-- Manual Adjustment
-- Opening Balance
-
-Each transaction contains:
-
-- Date
-- Amount
-- Reference Number
-- Description
-- Created By
-- Timestamp
-
-Transactions cannot be edited after saving.
-
-Corrections require reversal entries to maintain audit history.
-
-Running balance is recalculated after every transaction.
+Transactions cannot be edited after saving — corrections require reversal entries. Running balance is recalculated after every transaction via the shared transaction-creation service (single write path — this is the architectural foundation everything else, including risk scoring, is built on).
 
 ---
 
 # 6. Credit Sale Flow
 
-Staff selects customer.
+Staff selects retailer. System displays: outstanding balance, credit limit, **risk score and recommendation**, average payment delay.
 
-System displays:
+If projected balance exceeds credit limit, system displays a warning; Owner may override.
 
-- Outstanding balance
-- Credit limit
-- Risk score
-- Average payment delay
-
-If projected balance exceeds credit limit:
-
-System displays warning.
-
-Owner may override.
-
-Staff enters:
-
-- Invoice Number
-- Invoice Date
-- Credit Amount
-- Optional notes
-
-System:
-
-- Saves transaction
-- Updates customer balance
-- Updates dashboard
+Staff enters Invoice Number, Invoice Date, Credit Amount, optional notes. System saves the transaction, updates the retailer balance and risk score, updates the dashboard.
 
 ---
 
 # 7. Payment Recording Flow
 
-Staff selects customer.
-
-System displays outstanding amount.
-
-Staff enters:
-
-- Payment amount
-- Payment date
-- Payment method
-- Reference number
-- Notes
-
-System:
-
-- Creates payment transaction
-- Updates outstanding balance
-- Updates dashboard
-- Records payment history
-
-Overpayments create customer credit balance.
+Staff selects retailer, system displays outstanding amount. Staff enters payment amount, date, method, reference, notes. System creates the payment transaction, updates outstanding balance and risk score, updates the dashboard and payment history. Overpayments create a retailer credit balance.
 
 ---
 
-# 8. Customer Ledger
+# 8. Retailer Ledger
 
-Each customer has a chronological ledger.
-
-Shows:
-
-- Date
-- Transaction type
-- Debit
-- Credit
-- Running balance
-- Remarks
-
-Filters:
-
-- Date range
-- Transaction type
-
-Export:
-
-- **PDF**
-- Excel
+Chronological ledger per retailer: date, transaction type, debit, credit, running balance, remarks. Filters: date range, transaction type. Export: PDF, Excel.
 
 ---
 
-# 9. Customer Statement
+# 9. Retailer Statement
 
-Owner can generate statement for any period.
-
-Statement contains:
-
-- Business information
-- Customer information
-- Opening balance
-- All transactions
-- Closing balance
-- Outstanding amount
-- Generated date
-
-Export formats:
-
-- **PDF**
-- WhatsApp Share
+Owner can generate a statement for any period: business info, retailer info, opening balance, all transactions, closing balance, outstanding amount, generated date. Export: PDF, and share via any connected messaging channel (not tied to a single provider).
 
 ---
 
-# 10. WhatsApp Reminder System
+# 10. Multi-Channel Collection Reminders
 
-Reminder templates are configurable.
+**This replaces the original WhatsApp-only reminder system.** Reminders are sent through a channel-agnostic notification layer:
 
-Default template:
+- **SMS** — default channel. High delivery certainty, no external approval bottleneck, works on any handset.
+- **WhatsApp** — optional richer channel where available and approved; added as an adapter, not a hard dependency of the core product.
+- (Future) **Voice/IVR** — same abstraction, addable later without touching the ledger or risk engine.
 
-Assalam-o-Alaikum.
+Reminder templates are configurable with variables: Retailer Name, Business Name, Outstanding Amount, Due Date, Payment Instructions.
 
-Your outstanding balance with **ABC** Traders is Rs. XX,**XXX**.
+## 10.1 Manual Reminder Flow
+Owner/Staff opens retailer, clicks *Send Reminder*, previews the generated message, sends via the configured channel, delivery attempt is logged (date, time, user, template, channel, delivery status).
 
-Kindly clear your payment at your earliest convenience.
+## 10.2 Scheduled Reminder Flow
+Owner creates a reminder rule (days after invoice, frequency, stop after payment, maximum reminders). Scheduler runs automatically and sends via the configured channel(s). No reminder is sent when outstanding balance is zero.
 
-Thank you.
-
-Variables:
-
-- Customer Name
-- Business Name
-- Outstanding Amount
-- Due Date
-- Payment Instructions
+## 10.3 Reply / Outcome Tracking
+System stores Sent / Delivered (if available) / Failed per channel, plus an optional staff note: promised payment, disputed invoice, wrong number, follow-up required.
 
 ---
 
-# 11. Manual Reminder Flow
+# 11. Credit Risk Engine (pulled forward — core differentiator)
 
-Owner opens customer.
+Risk score recalculated after every transaction via the same shared transaction-creation service used for credit sales and payments (no separate write path, no drift risk).
 
-Clicks *Send Reminder*.
+**Inputs:** average payment delay, outstanding amount, credit utilization, number of overdue invoices.
 
-System:
+**Risk Levels:** Low / Medium / High, each with a recommendation: safe to extend credit / monitor closely / limit additional credit / block further credit.
 
-- Generates message
-- Shows preview
-- Sends via WhatsApp
-- Logs delivery attempt
-
-History stores:
-
-- Date
-- Time
-- User
-- Message template
-- Delivery status
+Displayed before every new credit sale and on the retailer profile and dashboard. This is the layer that existing distribution/ledger software in this market does not offer with the same depth — static credit limits and after-the-fact aging reports are common; a live, transaction-driven forward risk score is not.
 
 ---
 
-# 12. Scheduled Reminder Flow
+# 12. Dashboard
 
-Owner creates reminder rule.
-
-Configuration:
-
-- Days after invoice
-- Frequency
-- Stop after payment
-- Maximum reminders
-
-Scheduler runs automatically.
-
-Customers matching criteria receive reminders.
-
-Reminder log updated.
-
-No reminder is sent when outstanding balance is zero.
+Owner dashboard displays: Today's Credit Sales, Today's Payments, Total Outstanding, Total Retailers, Overdue Retailers, Top Outstanding Retailers, Recently Received Payments, Recent Credit Sales, Monthly Collection Trend, Collection Rate, Average Payment Delay, **High-Risk Retailers list**.
 
 ---
 
-# 13. WhatsApp Reply Tracking (MVP)
+# 13. Search
 
-System stores:
-
-- Sent
-- Delivered (if available)
-- Failed
-
-Optional staff note:
-
-- Customer promised payment
-- Customer disputed invoice
-- Wrong number
-- Follow-up required
+Global search across Retailer Name, Phone Number, Business Name, Invoice Number.
 
 ---
 
-# 14. Credit Risk Engine
+# 14. Reports
 
-Risk score recalculated after every transaction.
-
-Inputs:
-
-- Average payment delay
-- Outstanding amount
-- Credit utilization
-- Number of overdue invoices
-
-Risk Levels:
-
-- Low
-- Medium
-- High
-
-Recommendations:
-
-- Safe to extend credit
-- Monitor closely
-- Limit additional credit
-- Block further credit
-
-Displayed before every new sale.
+Outstanding Retailers, Payments Received, Sales Report, Overdue Report, Collection Summary, Retailer Ledger Report. Filters: date, retailer, amount range. Export: PDF, Excel.
 
 ---
 
-# 15. Dashboard
+# 15. Notifications
 
-Owner dashboard displays:
-
-Today's Credit Sales
-
-Today's Payments
-
-### Total Outstanding
-
-### Total Customers
-
-### Overdue Customers
-
-### Top Outstanding Customers
-
-### Recently Received Payments
-
-### Recent Credit Sales
-
-### Monthly Collection Trend
-
-### Collection Rate
-
-### Average Payment Delay
+Owner receives notifications for: large payment received, large new credit sale, retailer exceeds credit limit, reminder delivery failure (any channel), high-risk retailer detected.
 
 ---
 
-# 16. Search
+# 16. User Management
 
-Global search supports:
-
-- Customer Name
-- Phone Number
-- Business Name
-- Invoice Number
-
-Returns relevant customer and ledger.
+Owner can invite users, disable users, reset passwords, assign permissions. Roles: Owner, Manager, Staff.
 
 ---
 
-# 17. Reports
+# 17. Audit Log
 
-Reports include:
-
-### Outstanding Customers
-
-### Payments Received
-
-### Sales Report
-
-### Overdue Report
-
-### Collection Summary
-
-### Customer Ledger Report
-
-Filters:
-
-- Date
-- Customer
-- Amount Range
-
-Export:
-
-- **PDF**
-- Excel
+Records: login, retailer creation, sales, payments, reminder sent, user changes, settings changes. Each entry: user, timestamp, action, entity affected. Logs cannot be modified.
 
 ---
 
-# 18. Notifications
+# 18. Data Import
 
-Owner receives notifications for:
-
-- Large payment received
-- Large new credit sale
-- Customer exceeds credit limit
-- Reminder failed
-- High-risk customer detected
+Import Retailers, Opening Balances, Transactions via Excel/CSV, routed through the same internal services used by manual entry (so risk scoring and audit logs stay consistent, not bypassed). System validates duplicate retailers, missing phone numbers, invalid amounts; invalid rows reported before import.
 
 ---
 
-# 19. User Management
+# 19. Settings
 
-Owner can:
-
-- Invite users
-- Disable users
-- Reset passwords
-- Assign permissions
-
-Roles:
-
-- Owner
-- Manager
-- Staff
+Owner configures: reminder templates, reminder schedule, active reminder channels, credit limit defaults, statement branding, payment methods, company profile.
 
 ---
 
-# 20. Audit Log
+# 20. Security
 
-System records:
-
-- Login
-- Customer creation
-- Sales
-- Payments
-- Reminder sent
-- User changes
-- Settings changes
-
-Each entry includes:
-
-- User
-- Timestamp
-- Action
-- Entity affected
-
-Logs cannot be modified.
+Secure login, encrypted passwords, all actions tied to authenticated users, HTTPS, daily automatic backups, role-based authorization enforced.
 
 ---
 
-# 21. Data Import
+# 21. Validation Rules
 
-Support importing:
-
-- Customers
-- Opening Balances
-- Transactions
-
-Accepted formats:
-
-- Excel
-- **CSV**
-
-System validates:
-
-- Duplicate customers
-- Missing phone numbers
-- Invalid amounts
-
-Invalid rows reported before import.
-
----
-
-# 22. Settings
-
-Business owner configures:
-
-- Reminder templates
-- Reminder schedule
-- Credit limit defaults
-- Statement branding
-- Payment methods
-- Company profile
-
----
-
-# 23. Security
-
-- Secure login required.
-- Passwords encrypted.
-- All actions tied to authenticated users.
-- **HTTPS** for all communication.
-- Daily automatic backups.
-- Role-based authorization enforced.
-
----
-
-# 24. Validation Rules
-
-- Customer name is mandatory.
-- Mobile number is mandatory.
+- Retailer name and mobile number are mandatory.
 - Transaction amount must be greater than zero.
 - Future transaction dates are not allowed.
 - Credit limit cannot be negative.
-- Payments cannot be recorded without selecting a customer.
+- Payments cannot be recorded without selecting a retailer.
 
 ---
 
-# 25. End-to-End Business Flow
+# 22. End-to-End Business Flow
 
-## Business is onboarded and company profile configured.
-
-## Existing customers and opening balances are imported or entered. ## Staff creates a credit sale when goods are supplied. ## Ledger and outstanding balance update automatically. ## Dashboard reflects new receivable. ## Scheduled reminder identifies overdue accounts. ## WhatsApp reminder is sent and logged. ## Customer pays via preferred payment method. ## Staff records payment. ## Ledger updates automatically. ## Outstanding amount decreases. ## Risk score recalculates. ## Customer statement reflects latest balance. ## Owner monitors collections and overdue balances from the dashboard.
+1. Distributor is onboarded and company profile configured.
+2. Existing retailers and opening balances are imported or entered.
+3. Staff/salesman creates a credit sale when goods are supplied; system shows live risk context first.
+4. Ledger, outstanding balance, and risk score update automatically.
+5. Dashboard reflects new receivable and any change in risk level.
+6. Scheduled reminder identifies overdue accounts and sends via the configured channel(s).
+7. Retailer pays via preferred payment method; staff records payment.
+8. Ledger updates automatically; outstanding amount decreases; risk score recalculates.
+9. Retailer statement reflects latest balance.
+10. Owner monitors collections, overdue balances, and high-risk retailers from the dashboard.
 
 ---
 
-# 26. MVP Scope
+# 23. MVP Scope
 
-Included:
+**Included:** Retailer management, digital ledger, credit sales, payment recording, retailer statements, multi-channel reminders (SMS-first, WhatsApp optional), reminder scheduling, minimum-viable credit risk score, dashboard, basic reports, user management, audit logs, data import.
 
-- Customer management
-- Digital ledger
-- Credit sales
-- Payment recording
-- Customer statements
-- WhatsApp reminders
-- Reminder scheduling
-- Dashboard
-- Basic reports
-- Credit risk indicator
-- User management
-- Audit logs
-- Data import
+**Excluded (future releases):** Inventory management, van sales/route planning, scheme and claims management, multi-branch support, accounting/ERP integration, predictive ML-based risk/cash-flow forecasting, AI collection assistant, native mobile app, online payment gateway integration.
 
-Excluded (Future Releases):
+---
 
-- Inventory management
-- Supplier management
-- Purchase orders
-- Multi-branch support
-- Accounting integration
-- Financing and loan scoring
-- AI collection assistant
-- Predictive cash flow analytics
-- Mobile application
-- Online payment gateway integration
-- **ERP** integrations
+# 24. Explicit Non-Goals
+
+- Not a full distribution ERP (no inventory, PJP routing, GPS van tracking, scheme management) — deliberately scoped to receivables and credit risk only, to stay fast to adopt against heavier incumbent DMS platforms.
+- Not dependent on any single messaging provider — WhatsApp is an optional adapter, never a hard requirement of the MVP.
